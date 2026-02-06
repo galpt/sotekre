@@ -1,11 +1,57 @@
 @echo off
 REM run_project.bat — quick demo (Windows)
+REM - automatically requests admin privileges to kill processes
 REM - compiles Go backend (uses compile_golang.bat)
 REM - installs frontend deps if missing
+REM - kills existing processes on ports 8080 and 3000
 REM - launches backend exe and Next.js dev server in separate terminals
+
+REM Check for admin privileges and re-launch if needed
+net session >nul 2>&1
+if %errorLevel% neq 0 (
+    echo [sotekre] requesting administrator privileges...
+    powershell -Command "Start-Process '%~f0' -Verb RunAs"
+    exit /b
+)
 
 setlocal
 echo [sotekre] preparing demo environment...
+
+REM Kill all existing sotekre.exe processes (backend)
+echo [sotekre] killing existing backend processes...
+taskkill /F /IM sotekre.exe >nul 2>&1
+
+REM Kill existing processes on port 8080 (backend)
+echo [sotekre] checking port 8080...
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8080"') do (
+    taskkill /F /PID %%a >nul 2>&1
+)
+
+REM Kill existing processes on port 3000 (frontend - more aggressive)
+echo [sotekre] checking port 3000...
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":3000"') do (
+    echo [sotekre] killing PID %%a on port 3000
+    taskkill /F /PID %%a >nul 2>&1
+)
+
+REM Also kill any node processes that might be lingering
+echo [sotekre] cleaning up node processes...
+for /f "tokens=2" %%a in ('tasklist ^| findstr "node.exe"') do (
+    taskkill /F /PID %%a >nul 2>&1
+)
+
+REM Wait longer for ports to be fully released
+echo [sotekre] waiting for ports to be released...
+timeout /t 3 /nobreak >nul
+
+REM Verify ports are free
+:check_ports
+netstat -aon | findstr ":3000" | findstr "LISTENING" >nul 2>&1
+if %errorLevel% equ 0 (
+    echo [sotekre] port 3000 still in use, waiting...
+    timeout /t 2 /nobreak >nul
+    goto check_ports
+)
 
 REM ensure backend env exists
 if not exist "%~dp0backend\.env" (

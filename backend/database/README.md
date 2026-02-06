@@ -58,7 +58,7 @@ erDiagram
     VARCHAR title
     VARCHAR url
     BIGINT parent_id "nullable, self-reference"
-    INT `order` "sibling position"
+    INT order "sibling position"
     DATETIME created_at
     DATETIME updated_at
     DATETIME deleted_at "soft delete"

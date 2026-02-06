@@ -5,16 +5,42 @@ type SidebarProps = {
     onMenuClick?: (menu: string) => void
 }
 
+// SVG Icons
+const FolderOpenIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M1.5 2A1.5 1.5 0 000 3.5v9A1.5 1.5 0 001.5 14h13a1.5 1.5 0 001.5-1.5v-7A1.5 1.5 0 0014.5 4H9.414L7.707 2.293A1 1 0 007 2H1.5zM1 3.5a.5.5 0 01.5-.5H7l1.707 1.707A1 1 0 009.414 5H14.5a.5.5 0 01.5.5v7a.5.5 0 01-.5.5h-13a.5.5 0 01-.5-.5v-9z" />
+    </svg>
+)
+
+const FolderClosedIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M1.5 2A1.5 1.5 0 000 3.5v9A1.5 1.5 0 001.5 14h13a1.5 1.5 0 001.5-1.5v-7A1.5 1.5 0 0014.5 4H9.414L7.707 2.293A1 1 0 007 2H1.5z" />
+    </svg>
+)
+
+const FileIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M4 0a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V5.414A1.5 1.5 0 0013.414 4L10 .586A1.5 1.5 0 009.414 0H4zm0 1h5v3.5A1.5 1.5 0 0010.5 6H13v8a1 1 0 01-1 1H4a1 1 0 01-1-1V2a1 1 0 011-1z" />
+    </svg>
+)
+
 export default function Sidebar({ activeMenu = 'Menus', onMenuClick }: SidebarProps) {
     const menuItems = [
-        { id: 'systems', icon: '📁', label: 'Systems' },
-        { id: 'systemCode', icon: '💻', label: 'System Code' },
-        { id: 'properties', icon: '⚙️', label: 'Properties' },
-        { id: 'menus', icon: '☰', label: 'Menus' },
-        { id: 'apiList', icon: '📋', label: 'API List' },
-        { id: 'usersGroup', icon: '👥', label: 'Users & Group' },
-        { id: 'competition', icon: '🏆', label: 'Competition' },
+        { id: 'systems', type: 'folder', label: 'Systems', hasChildren: true },
+        { id: 'systemCode', type: 'file', label: 'System Code', indent: true },
+        { id: 'properties', type: 'file', label: 'Properties', indent: true },
+        { id: 'menus', type: 'file', label: 'Menus', indent: true },
+        { id: 'apiList', type: 'file', label: 'API List', indent: true },
+        { id: 'usersGroup', type: 'folder', label: 'Users & Group', hasChildren: false },
+        { id: 'competition', type: 'folder', label: 'Competition', hasChildren: false },
     ]
+
+    const renderIcon = (item: typeof menuItems[0], isActive: boolean) => {
+        if (item.type === 'folder') {
+            return isActive ? <FolderOpenIcon /> : <FolderClosedIcon />
+        }
+        return <FileIcon />
+    }
 
     return (
         <div className="w-[188px] h-screen bg-[#0D47A1] text-white flex flex-col fixed left-0 top-0">
@@ -55,10 +81,10 @@ export default function Sidebar({ activeMenu = 'Menus', onMenuClick }: SidebarPr
                             className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-colors ${isActive
                                     ? 'bg-white text-[#0D47A1] font-medium'
                                     : 'text-white hover:bg-blue-800'
-                                }`}
+                                } ${item.indent ? 'pl-10' : ''}`}
                         >
-                            <span className={`text-base ${isActive ? '' : 'opacity-80'}`}>
-                                {item.icon}
+                            <span className={`flex-shrink-0 ${isActive ? '' : 'opacity-80'}`}>
+                                {renderIcon(item, isActive)}
                             </span>
                             <span className="text-sm">{item.label}</span>
                         </button>

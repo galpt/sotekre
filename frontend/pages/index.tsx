@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
 import MenuTree from '../components/MenuTree'
 import DetailsPanel from '../components/DetailsPanel'
+import { menuService, MenuNode as APIMenuNode } from '../services/menuService'
 
 type MenuItem = {
     id: string
@@ -11,147 +12,56 @@ type MenuItem = {
     children?: MenuItem[]
 }
 
-// Sample data matching the Figma design
-const sampleMenuData: MenuItem[] = [
-    {
-        id: '1',
-        name: 'system management',
-        depth: 1,
-        children: [
-            {
-                id: '2',
-                name: 'System Management',
-                depth: 2,
-                parentData: 'system management',
-                children: [
-                    {
-                        id: '3',
-                        name: 'Systems',
-                        depth: 3,
-                        parentData: 'System Management',
-                        children: [
-                            {
-                                id: '56320ee9-6af6-11ed-a7ba-f220afe5e4a9',
-                                name: 'System Code',
-                                depth: 3,
-                                parentData: 'Systems',
-                                children: [
-                                    {
-                                        id: '5',
-                                        name: 'Code Registration',
-                                        depth: 4,
-                                        parentData: 'System Code',
-                                    },
-                                    {
-                                        id: '6',
-                                        name: 'Code Registration - 2',
-                                        depth: 4,
-                                        parentData: 'System Code',
-                                    },
-                                ],
-                            },
-                            {
-                                id: '7',
-                                name: 'Properties',
-                                depth: 4,
-                                parentData: 'Systems',
-                            },
-                        ],
-                    },
-                    {
-                        id: '8',
-                        name: 'Menus',
-                        depth: 3,
-                        parentData: 'System Management',
-                        children: [
-                            {
-                                id: '9',
-                                name: 'Menu Registration',
-                                depth: 4,
-                                parentData: 'Menus',
-                            },
-                        ],
-                    },
-                    {
-                        id: '10',
-                        name: 'API List',
-                        depth: 3,
-                        parentData: 'System Management',
-                        children: [
-                            {
-                                id: '11',
-                                name: 'API Registration',
-                                depth: 4,
-                                parentData: 'API List',
-                            },
-                            {
-                                id: '12',
-                                name: 'API Edit',
-                                depth: 4,
-                                parentData: 'API List',
-                            },
-                        ],
-                    },
-                ],
-            },
-            {
-                id: '13',
-                name: 'Users & Groups',
-                depth: 2,
-                parentData: 'system management',
-                children: [
-                    {
-                        id: '14',
-                        name: 'Users',
-                        depth: 3,
-                        parentData: 'Users & Groups',
-                        children: [
-                            {
-                                id: '15',
-                                name: 'User Account Registration',
-                                depth: 4,
-                                parentData: 'Users',
-                            },
-                        ],
-                    },
-                    {
-                        id: '16',
-                        name: 'Groups',
-                        depth: 3,
-                        parentData: 'Users & Groups',
-                        children: [
-                            {
-                                id: '17',
-                                name: 'User Group Registration',
-                                depth: 4,
-                                parentData: 'Groups',
-                            },
-                        ],
-                    },
-                ],
-            },
-            {
-                id: '18',
-                name: '사용자 승인',
-                depth: 2,
-                parentData: 'system management',
-                children: [
-                    {
-                        id: '19',
-                        name: '사용자 승인 상세',
-                        depth: 3,
-                        parentData: '사용자 승인',
-                    },
-                ],
-            },
-        ],
-    },
-]
+// Helper function to calculate depth and convert API data to UI format
+const convertAPIToUI = (node: APIMenuNode, depth: number = 1, parentTitle?: string): MenuItem => {
+    return {
+        id: node.id.toString(),
+        name: node.title,
+        depth,
+        parentData: parentTitle,
+        children: node.children?.map(child => convertAPIToUI(child, depth + 1, node.title)),
+    }
+}
+
+// Helper to find parent title given parent_id
+const findParentTitle = (nodes: APIMenuNode[], parentId: number): string | undefined => {
+    for (const node of nodes) {
+        if (node.id === parentId) return node.title
+        if (node.children) {
+            const found = findParentTitle(node.children, parentId)
+            if (found) return found
+        }
+    }
+    return undefined
+}
 
 export default function Home() {
+    const [menuData, setMenuData] = useState<MenuItem[]>([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
     const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
     const [expandedAll, setExpandedAll] = useState<boolean | undefined>(undefined)
     const [selectedCategory, setSelectedCategory] = useState('system management')
+
+    // Load menus from API
+    useEffect(() => {
+        loadMenus()
+    }, [])
+
+    const loadMenus = async () => {
+        try {
+            setLoading(true)
+            setError(null)
+            const data = await menuService.getMenus()
+            const converted = data.map(node => convertAPIToUI(node))
+            setMenuData(converted)
+        } catch (err: any) {
+            console.error('Failed to load menus:', err)
+            setError(err.message || 'Failed to load menus')
+        } finally {
+            setLoading(false)
+        }
+    }
 
     const handleExpandAll = () => {
         setExpandedAll(true)
@@ -161,9 +71,18 @@ export default function Home() {
         setExpandedAll(false)
     }
 
-    const handleSave = (item: MenuItem) => {
-        console.log('Saving item:', item)
-        // Add your save logic here
+    const handleSave = async (item: MenuItem) => {
+        try {
+            // Here you can implement update logic
+            console.log('Saving item:', item)
+            await menuService.updateMenu(parseInt(item.id), {
+                title: item.name,
+            })
+            await loadMenus() // Reload after save
+        } catch (err: any) {
+            console.error('Failed to save:', err)
+            alert('Failed to save: ' + err.message)
+        }
     }
 
     return (
@@ -230,12 +149,26 @@ export default function Home() {
 
                     {/* Tree View */}
                     <div className="flex-1 overflow-auto bg-white p-4">
-                        <MenuTree
-                            items={sampleMenuData}
-                            selectedId={selectedItem?.id}
-                            onSelectItem={setSelectedItem}
-                            expandedAll={expandedAll}
-                        />
+                        {loading ? (
+                            <div className="flex items-center justify-center h-full">
+                                <div className="text-gray-500">Loading menus...</div>
+                            </div>
+                        ) : error ? (
+                            <div className="flex items-center justify-center h-full">
+                                <div className="text-red-500">Error: {error}</div>
+                            </div>
+                        ) : menuData.length === 0 ? (
+                            <div className="flex items-center justify-center h-full">
+                                <div className="text-gray-400">No menus found</div>
+                            </div>
+                        ) : (
+                            <MenuTree
+                                items={menuData}
+                                selectedId={selectedItem?.id}
+                                onSelectItem={setSelectedItem}
+                                expandedAll={expandedAll}
+                            />
+                        )}
                     </div>
                 </div>
 
