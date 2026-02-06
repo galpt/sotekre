@@ -112,8 +112,9 @@ func TestDeleteMenuRecursive_txRollback_onDeleteError_sqlmock(t *testing.T) {
 	mock.ExpectBegin()
 	// the service will query children by parent_id (return empty rows here)
 	mock.ExpectQuery("SELECT .*FROM .*menus.*parent_id").WillReturnRows(sqlmock.NewRows([]string{"id", "title", "parent_id", "order"}))
-	// force the soft-delete (UPDATE ... SET `deleted_at`) to fail
-	mock.ExpectExec("UPDATE .*menus.*").WillReturnError(fmt.Errorf("boom"))
+	// force the hard-delete (DELETE ... WHERE id IN) to fail
+	// Note: We use Unscoped().Delete() for hard delete, not soft delete UPDATE
+	mock.ExpectExec("DELETE FROM .*menus.*").WillReturnError(fmt.Errorf("boom"))
 	mock.ExpectRollback()
 
 	err = DeleteMenuRecursive(context.Background(), 42)

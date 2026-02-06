@@ -35,8 +35,12 @@ func SetupRouter() *gin.Engine {
 	{
 		menus := api.Group("/menus")
 		{
+			// Register both with and without trailing slash for compatibility
+			// Frontend calls without trailing slash, tests call with trailing slash
 			menus.GET("", handlers.GetMenus)
+			menus.GET("/", handlers.GetMenus)
 			menus.POST("", handlers.CreateMenu)
+			menus.POST("/", handlers.CreateMenu)
 			menus.PUT("/:id", handlers.UpdateMenu)
 			menus.PATCH("/:id/reorder", handlers.ReorderMenu)
 			menus.PATCH("/:id/move", handlers.MoveMenu)
