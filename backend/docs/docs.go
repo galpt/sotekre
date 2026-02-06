@@ -332,7 +332,15 @@ const docTemplate = `{
             }
         },
         "handlers.moveInput": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+                "new_order": {
+                    "type": "integer"
+                },
+                "new_parent_id": {
+                    "type": "integer"
+                }
+            }
         },
         "handlers.reorderInput": {
             "type": "object",

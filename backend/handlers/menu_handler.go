@@ -33,8 +33,6 @@ type reorderInput struct {
 }
 
 type moveInput struct {
-	// example:"null" removed — JSON `null` is allowed for this field, but
-	// the swag parser treats the literal `"null"` example as an int and warns.
 	NewParentID *uint `json:"new_parent_id"`
 	NewOrder    *int  `json:"new_order,omitempty"`
 }

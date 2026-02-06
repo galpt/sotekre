@@ -26,6 +26,11 @@ definitions:
         type: array
     type: object
   handlers.moveInput:
+    properties:
+      new_order:
+        type: integer
+      new_parent_id:
+        type: integer
     type: object
   handlers.reorderInput:
     properties:
