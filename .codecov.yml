@@ -1,0 +1,18 @@
+# Codecov configuration
+# See: https://docs.codecov.com/docs/codecov-yaml
+
+coverage:
+  status:
+    project:
+      default:
+        target: 90%
+        threshold: 1%
+    patch:
+      default:
+        target: 90%
+
+ignore:
+- "backend/docs" # Auto-generated swagger documentation
+- "backend/docs/**/*" # All files in docs directory
+- "**/*_test.go" # Test files
+- "**/vendor/**" # Vendored dependencies
