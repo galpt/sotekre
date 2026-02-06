@@ -40,7 +40,16 @@ func TestInitDB_overridableHooks(t *testing.T) {
 	// ensure InitDB propagates errors and uses sleep/open hooks without sleeping
 	origOpen := OpenGorm
 	origSleep := SleepFn
-	defer func() { OpenGorm = origOpen; SleepFn = origSleep }()
+	origRetries := os.Getenv("DB_CONNECT_RETRIES")
+	defer func() {
+		OpenGorm = origOpen
+		SleepFn = origSleep
+		if origRetries == "" {
+			os.Unsetenv("DB_CONNECT_RETRIES")
+		} else {
+			os.Setenv("DB_CONNECT_RETRIES", origRetries)
+		}
+	}()
 
 	// simulate permanent open failure
 	OpenGorm = func(dialector gorm.Dialector, opts ...gorm.Option) (*gorm.DB, error) {
@@ -48,6 +57,8 @@ func TestInitDB_overridableHooks(t *testing.T) {
 	}
 	// avoid waiting during retries
 	SleepFn = func(d time.Duration) {}
+	// ensure we try at least once
+	os.Setenv("DB_CONNECT_RETRIES", "1")
 
 	err := InitDB()
 	require.Error(t, err)
@@ -66,7 +77,17 @@ func TestInitDB_pingFailure_retries_thenSucceeds(t *testing.T) {
 	origOpen := OpenGorm
 	origPing := PingFn
 	origSleep := SleepFn
-	defer func() { OpenGorm = origOpen; PingFn = origPing; SleepFn = origSleep }()
+	origRetries := os.Getenv("DB_CONNECT_RETRIES")
+	defer func() {
+		OpenGorm = origOpen
+		PingFn = origPing
+		SleepFn = origSleep
+		if origRetries == "" {
+			os.Unsetenv("DB_CONNECT_RETRIES")
+		} else {
+			os.Setenv("DB_CONNECT_RETRIES", origRetries)
+		}
+	}()
 
 	// open succeeds, but ping fails once then succeeds
 	OpenGorm = func(dialector gorm.Dialector, opts ...gorm.Option) (*gorm.DB, error) {
@@ -81,6 +102,8 @@ func TestInitDB_pingFailure_retries_thenSucceeds(t *testing.T) {
 		return nil
 	}
 	SleepFn = func(d time.Duration) {}
+	// ensure we have at least 2 retries so ping can fail once then succeed
+	os.Setenv("DB_CONNECT_RETRIES", "2")
 
 	require.NoError(t, InitDB())
 	_ = CloseDB()
@@ -90,13 +113,25 @@ func TestInitDB_pingPermanentFailure_returnsError(t *testing.T) {
 	origOpen := OpenGorm
 	origPing := PingFn
 	origSleep := SleepFn
-	defer func() { OpenGorm = origOpen; PingFn = origPing; SleepFn = origSleep }()
+	origRetries := os.Getenv("DB_CONNECT_RETRIES")
+	defer func() {
+		OpenGorm = origOpen
+		PingFn = origPing
+		SleepFn = origSleep
+		if origRetries == "" {
+			os.Unsetenv("DB_CONNECT_RETRIES")
+		} else {
+			os.Setenv("DB_CONNECT_RETRIES", origRetries)
+		}
+	}()
 
 	OpenGorm = func(dialector gorm.Dialector, opts ...gorm.Option) (*gorm.DB, error) {
 		return gorm.Open(sqlite.Open("file:memtest_ping2?mode=memory&cache=shared"), opts...)
 	}
 	PingFn = func(db *sql.DB) error { return fmt.Errorf("unreachable") }
 	SleepFn = func(d time.Duration) {}
+	// set retries to 1 to fail fast
+	os.Setenv("DB_CONNECT_RETRIES", "1")
 
 	reqErr := InitDB()
 	require.Error(t, reqErr)
