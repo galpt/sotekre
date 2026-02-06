@@ -1,0 +1,274 @@
+basePath: /api
+definitions:
+  handlers.createMenuInput:
+    properties:
+      order:
+        type: integer
+      parent_id:
+        type: integer
+      title:
+        type: string
+      url:
+        type: string
+    required:
+    - title
+    type: object
+  handlers.errorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  handlers.getMenusResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/models.MenuNode'
+        type: array
+    type: object
+  handlers.moveInput:
+    properties:
+      new_order:
+        type: integer
+      new_parent_id:
+        type: integer
+    type: object
+  handlers.reorderInput:
+    properties:
+      new_order:
+        example: 0
+        type: integer
+    type: object
+  handlers.updateMenuInput:
+    properties:
+      order:
+        type: integer
+      parent_id:
+        type: integer
+      title:
+        type: string
+      url:
+        type: string
+    type: object
+  models.Menu:
+    properties:
+      created_at:
+        type: string
+      icon:
+        type: string
+      id:
+        type: integer
+      order:
+        type: integer
+      parent_id:
+        type: integer
+      title:
+        type: string
+      updated_at:
+        type: string
+      url:
+        type: string
+    type: object
+  models.MenuNode:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/models.MenuNode'
+        type: array
+      id:
+        type: integer
+      order:
+        type: integer
+      parent_id:
+        type: integer
+      title:
+        type: string
+      url:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: dev@example.com
+    name: API Support
+  description: Minimal OpenAPI for the Menu Tree MVP
+  title: Sotekre — Menu Tree API
+  version: 0.1.0
+paths:
+  /api/menus:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.getMenusResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.errorResponse'
+      summary: Get full menu tree
+      tags:
+      - menus
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: create menu
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.createMenuInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Menu'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.errorResponse'
+      summary: Create a menu item
+      tags:
+      - menus
+  /api/menus/{id}:
+    delete:
+      parameters:
+      - description: menu id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.errorResponse'
+      summary: Delete menu item (recursive)
+      tags:
+      - menus
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: menu id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: fields to update
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.updateMenuInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.errorResponse'
+      summary: Update menu (partial)
+      tags:
+      - menus
+  /api/menus/{id}/move:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: menu id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: new parent and/or order
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.moveInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.errorResponse'
+      summary: Move menu item to different parent and position
+      tags:
+      - menus
+  /api/menus/{id}/reorder:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: menu id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: new order
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.reorderInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.errorResponse'
+      summary: Reorder menu item within same parent
+      tags:
+      - menus
+swagger: "2.0"
