@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Menu Tree — Sotekre (MVP)</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+
+<body class="bg-slate-50 text-slate-800 p-6">
+    <div class="max-w-5xl mx-auto">
+        <header class="flex items-center justify-between mb-6">
+            <h1 class="text-2xl font-semibold">Menu Tree — Demo (MVP)</h1>
+            <div>
+                <input id="search" class="border px-2 py-1 rounded mr-2" placeholder="Search..." />
+                <button id="refresh" class="bg-sky-600 text-white px-3 py-1 rounded">Refresh</button>
+            </div>
+        </header>
+
+        <section class="mb-6">
+            <form id="addRoot" class="flex gap-2">
+                <input id="title" class="flex-1 border px-2 py-1 rounded" placeholder="New root menu title" required />
+                <button class="bg-emerald-600 text-white px-3 py-1 rounded">Add root</button>
+            </form>
+        </section>
+
+        <main>
+            <div id="tree" class="bg-white border rounded p-4 shadow-sm min-h-[200px]"></div>
+        </main>
+
+        <footer class="mt-6 text-sm text-slate-500">Tip: click "Add child" on any item to add nested menus. This is a
+            minimal demo.</footer>
+    </div>
+
+    <script>
+        async function fetchMenus() {
+            const res = await fetch('/api/menus/')
+            const body = await res.json()
+            return body.data || []
+        }
+
+        function el(tag, cls, text) {
+            const n = document.createElement(tag)
+            if (cls) n.className = cls
+            if (text) n.textContent = text
+            return n
+        }
+
+        function renderNode(node) {
+            const li = el('div', 'pl-4 py-1')
+            const row = el('div', 'flex items-center gap-3')
+            const title = el('div', 'flex-1')
+            const toggle = el('button', 'text-sm text-slate-400 mr-2')
+            toggle.textContent = node.children && node.children.length ? '▾' : ''
+            title.appendChild(el('span', 'font-medium', node.title))
+            if (node.url) title.appendChild(el('span', 'ml-2 text-xs text-slate-400', `(${node.url})`))
+            row.appendChild(toggle)
+            row.appendChild(title)
+
+            const actions = el('div', 'flex gap-2')
+            const addBtn = el('button', 'text-xs px-2 py-0.5 bg-slate-100 rounded', 'Add child')
+            const editBtn = el('button', 'text-xs px-2 py-0.5 bg-yellow-100 rounded', 'Edit')
+            const delBtn = el('button', 'text-xs px-2 py-0.5 bg-rose-100 rounded', 'Delete')
+            actions.appendChild(addBtn)
+            actions.appendChild(editBtn)
+            actions.appendChild(delBtn)
+            row.appendChild(actions)
+            li.appendChild(row)
+
+            const childrenWrap = el('div', 'ml-6')
+            if (node.children && node.children.length) {
+                node.children.forEach(ch => childrenWrap.appendChild(renderNode(ch)))
+            }
+            if (toggle.textContent === '') childrenWrap.style.display = 'none'
+            toggle.addEventListener('click', () => {
+                childrenWrap.style.display = childrenWrap.style.display === 'none' ? 'block' : 'none'
+            })
+
+            addBtn.addEventListener('click', async () => {
+                const title = prompt('Child title')
+                if (!title) return
+                await fetch('/api/menus/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, parent_id: node.id }) })
+                load()
+            })
+            editBtn.addEventListener('click', async () => {
+                const title = prompt('New title', node.title)
+                if (!title) return
+                await fetch(`/api/menus/${node.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) })
+                load()
+            })
+            delBtn.addEventListener('click', async () => {
+                if (!confirm('Delete this item and all children?')) return
+                await fetch(`/api/menus/${node.id}`, { method: 'DELETE' })
+                load()
+            })
+
+            li.appendChild(childrenWrap)
+            return li
+        }
+
+        async function load() {
+            const tree = document.getElementById('tree')
+            tree.innerHTML = 'Loading...'
+            try {
+                const data = await fetchMenus()
+                tree.innerHTML = ''
+                if (!data.length) tree.appendChild(el('div', 'text-sm text-slate-500', 'No menu items yet'))
+                data.forEach(n => tree.appendChild(renderNode(n)))
+            } catch (err) {
+                tree.innerHTML = ''
+                tree.appendChild(el('div', 'text-sm text-rose-600', err.message || 'Failed to load'))
+            }
+        }
+
+        document.getElementById('addRoot').addEventListener('submit', async (ev) => {
+            ev.preventDefault()
+            const title = document.getElementById('title').value.trim()
+            if (!title) return
+            await fetch('/api/menus/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) })
+            document.getElementById('title').value = ''
+            load()
+        })
+
+        document.getElementById('refresh').addEventListener('click', load)
+        load()
+    </script>
+</body>
+
+</html>

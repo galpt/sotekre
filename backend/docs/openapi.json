@@ -1,0 +1,113 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Sotekre — Menu Tree API",
+        "version": "0.1.0",
+        "description": "Minimal OpenAPI for the Menu Tree MVP"
+    },
+    "paths": {
+        "/api/menus": {
+            "get": {
+                "summary": "Get full menu tree",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create menu item",
+                "requestBody": {
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created"
+                    }
+                }
+            }
+        },
+        "/api/menus/{id}": {
+            "put": {
+                "summary": "Update menu item",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "patch": {
+                "summary": "Reorder or move menu item (use specific subpaths)",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete menu (recursive)",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/api/menus/{id}/reorder": {
+            "patch": {
+                "summary": "Reorder menu item within same parent",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "new_order": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "required": [
+                                    "new_order"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/api/menus/{id}/move": {
+            "patch": {
+                "summary": "Move menu item to different parent and position",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "new_parent_id": {
+                                        "type": [
+                                            "integer",
+                                            "null"
+                                        ]
+                                    },
+                                    "new_order": {
+                                        "type": "integer"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "OK"
+                        }
+                    }
+                }
+            }
+        }
+    }

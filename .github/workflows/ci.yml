@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend — test & vet
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: gofmt check
+      run: |
+        set -euo pipefail
+        out=$(gofmt -s -l . | wc -l)
+        if [ "$out" -ne 0 ]; then
+          echo "Files must be gofmt'ed:" && gofmt -s -l .
+          exit 1
+        fi
+
+    - name: Run backend tests (with coverage)
+      working-directory: ./backend
+      run: |
+        set -euo pipefail
+        # run tests and produce coverage for the backend
+        go test -coverprofile=coverage.out ./... -v
+        go tool cover -func=coverage.out | tee coverage.txt
+
+    - name: Upload backend coverage artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: backend-coverage
+        path: ./backend/coverage.out
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: ./backend/coverage.out
+        fail_ci_if_error: true
+
+  frontend:
+    name: Frontend — typecheck & lint
+    runs-on: ubuntu-latest
+    needs: backend
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install frontend deps
+      working-directory: ./frontend
+      run: npm ci
+
+    - name: Typecheck
+      working-directory: ./frontend
+      run: npx tsc --noEmit
+
+    - name: Lint (if configured)
+      working-directory: ./frontend
+      run: npm run lint --if-present || true
+
+  docs-check:
+    name: OpenAPI parity check
+    runs-on: ubuntu-latest
+    needs: [ backend, frontend ]
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go (for swag)
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+
+    - name: Generate OpenAPI (swag)
+      run: |
+        set -euo pipefail
+        TMPDIR=$(mktemp -d)
+        # Generate using pinned swag version to avoid tool mismatch
+        go run github.com/swaggo/swag/cmd/swag@v1.8.12 init -g backend/main.go -o "$TMPDIR" --outputTypes json
+        echo "Generated:"
+        ls -lh "$TMPDIR"
+        echo "Comparing generated swagger.json with committed backend/docs/swagger.json"
+        if ! diff -u backend/docs/swagger.json "$TMPDIR/swagger.json"; then
+          echo "\nERROR: generated OpenAPI differs from committed file. Run 'go generate ./backend' and commit the result.";
+          exit 1
+        fi
+
+  check-release-readiness:
+    name: Release readiness (quick)
+    runs-on: ubuntu-latest
+    needs: [ backend, frontend, docs-check ]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Quick sanity
+      run: |
+        echo "gofmt / tests / tsc / openapi parity passed in previous jobs"
+        echo "OK"

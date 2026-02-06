@@ -1,0 +1,144 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+    - main
+    tags:
+    - 'v*'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+        - goos: windows
+          goarch: amd64
+          output: sotekre.exe
+          asset_name: sotekre-windows-amd64.zip
+        - goos: linux
+          goarch: amd64
+          output: sotekre
+          asset_name: sotekre-linux-amd64.tar.gz
+        - goos: darwin
+          goarch: amd64
+          output: sotekre
+          asset_name: sotekre-darwin-amd64.tar.gz
+        - goos: darwin
+          goarch: arm64
+          output: sotekre
+          asset_name: sotekre-darwin-arm64.tar.gz
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+
+    - name: Build backend executable
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+      run: |
+        set -euo pipefail
+        pushd backend
+        CGO_ENABLED=0 GOOS=${GOOS} GOARCH=${GOARCH} go build -ldflags="-s -w" -o "${{ matrix.output }}" .
+        ls -lh "${{ matrix.output }}"
+        popd
+
+    - name: Create distribution package
+      run: |
+        set -euo pipefail
+        mkdir -p dist
+        PKG_DIR="sotekre-${{ matrix.goos }}-${{ matrix.goarch }}"
+        rm -rf "$PKG_DIR" && mkdir -p "$PKG_DIR"
+
+        # copy binary
+        cp "backend/${{ matrix.output }}" "$PKG_DIR/"
+
+        # include docs and readme for reviewers
+        cp README.md "$PKG_DIR/"
+        if [ -f backend/README.md ]; then cp backend/README.md "$PKG_DIR/"; fi
+        if [ -f backend/docs/swagger.json ]; then cp backend/docs/swagger.json "$PKG_DIR/"; fi
+        if [ -f backend/database/ERD.md ]; then cp backend/database/ERD.md "$PKG_DIR/"; fi
+
+        # archive
+        if [ "${{ matrix.goos }}" = "windows" ]; then
+          zip -r "dist/${{ matrix.asset_name }}" "$PKG_DIR"
+        else
+          tar -czf "dist/${{ matrix.asset_name }}" "$PKG_DIR"
+        fi
+        ls -lh dist/${{ matrix.asset_name }}
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.asset_name }}
+        path: dist/${{ matrix.asset_name }}
+        retention-days: 1
+
+  create-release:
+    needs: build-and-release
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Prepare release assets
+      run: |
+        mkdir -p release
+        find artifacts -type f \( -name "*.zip" -o -name "*.tar.gz" \) -exec cp {} release/ \;
+        ls -lh release/
+
+    - name: Generate release tag
+      id: tag
+      run: |
+        if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          TAG="${GITHUB_REF#refs/tags/}"
+        else
+          TIMESTAMP=$(date -u +"%Y%m%d-%H%M%S")
+          TAG="release-${TIMESTAMP}"
+        fi
+        echo "tag=${TAG}" >> $GITHUB_OUTPUT
+        echo "timestamp=$(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_OUTPUT
+
+    - name: Calculate checksums
+      run: |
+        cd release
+        sha256sum * > SHA256SUMS.txt
+        cat SHA256SUMS.txt
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.tag.outputs.tag }}
+        name: Sotekre ${{ steps.tag.outputs.tag }}
+        body: |
+          Automated build for Sotekre (Menu Tree)
+
+          **Commit:** `${{ github.sha }}`
+
+          Artifacts:
+          - cross-platform backend binaries
+          - documentation (README + OpenAPI)
+
+          Verify checksums in `SHA256SUMS.txt` included with the release.
+        files: |
+          release/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

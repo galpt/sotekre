@@ -1,0 +1,15 @@
+-- Migration: create menus table (MySQL)
+CREATE TABLE IF NOT EXISTS `menus` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `title` VARCHAR(255) NOT NULL,
+  `url` VARCHAR(1024) DEFAULT NULL,
+  `icon` VARCHAR(255) DEFAULT NULL,
+  `parent_id` BIGINT UNSIGNED DEFAULT NULL,
+  `order` INT DEFAULT 0,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` DATETIME DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `idx_parent` (`parent_id`),
+  INDEX `idx_order` (`order`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
