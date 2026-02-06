@@ -8,7 +8,7 @@ import (
 )
 
 func ptrString(s string) *string { return &s }
-func ptrUint(v uint) *uint { return &v }
+func ptrUint(v uint) *uint       { return &v }
 
 func TestMenu_ToNode(t *testing.T) {
 	m := models.Menu{ID: 7, Title: "T", URL: ptrString("/x"), ParentID: ptrUint(3), Order: 5}

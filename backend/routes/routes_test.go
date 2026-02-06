@@ -12,6 +12,13 @@ import (
 )
 
 func TestSetupRouter_OpenAPI_and_Docs_Present(t *testing.T) {
+	// make the test hermetic: ensure a repo-style `backend/docs` OpenAPI + docs exist
+	p := filepath.Join("..", "docs")
+	require.NoError(t, os.MkdirAll(p, 0o755))
+	defer os.RemoveAll(p)
+	require.NoError(t, os.WriteFile(filepath.Join(p, "openapi.json"), []byte(`{"openapi":"3.0.0"}`), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(p, "swagger.html"), []byte(`<html></html>`), 0o644))
+
 	r := routes.SetupRouter()
 
 	rec := httptest.NewRecorder()

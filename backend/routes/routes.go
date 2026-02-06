@@ -56,6 +56,8 @@ func SetupRouter() *gin.Engine {
 		candidates := []string{
 			filepath.Join(base, "..", "docs", name),
 			filepath.Join(base, "docs", name),
+			filepath.Join(base, "routes", "docs", name), // support tests that create `routes/docs` inside the package
+			filepath.Join("routes", "docs", name),       // support working-dir-relative `routes/docs`
 			filepath.Join("docs", name),
 		}
 		for _, p := range candidates {

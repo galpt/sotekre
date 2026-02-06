@@ -277,7 +277,6 @@ func TestGetMenus_returnsEmptyArray_whenNoMenus(t *testing.T) {
 	require.Len(t, data, 0)
 }
 
-
 func TestUpdateMenu_Success_viaHTTP(t *testing.T) {
 	setupInMemoryDB(t)
 	defer config.CloseDB()

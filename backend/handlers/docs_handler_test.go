@@ -3,12 +3,15 @@ package handlers_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/galpt/sotekre/backend/config"
 	"github.com/galpt/sotekre/backend/models"
 	"github.com/galpt/sotekre/backend/routes"
+	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -28,6 +31,13 @@ func setupInMemoryDBForDocs(t *testing.T) {
 func TestDocsEndpointsAvailable(t *testing.T) {
 	setupInMemoryDBForDocs(t)
 	defer config.CloseDB()
+
+	// make test hermetic: ensure backend/docs/openapi.json + swagger.html exist
+	p := filepath.Join("..", "docs")
+	require.NoError(t, os.MkdirAll(p, 0o755))
+	defer os.RemoveAll(p)
+	require.NoError(t, os.WriteFile(filepath.Join(p, "openapi.json"), []byte(`{"openapi":"3.0.0"}`), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(p, "swagger.html"), []byte(`<html></html>`), 0o644))
 
 	r := routes.SetupRouter()
 

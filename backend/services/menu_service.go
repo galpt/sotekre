@@ -276,10 +276,10 @@ func MoveMenu(ctx context.Context, id uint, newParentID *uint, newOrder *int) er
 
 // Test hooks — allow handlers to stub behavior in tests.
 var (
-	CreateMenuFn = CreateMenu
-	UpdateMenuFn = UpdateMenu
-	ReorderMenuFn = ReorderMenu
-	MoveMenuFn = MoveMenu
+	CreateMenuFn          = CreateMenu
+	UpdateMenuFn          = UpdateMenu
+	ReorderMenuFn         = ReorderMenu
+	MoveMenuFn            = MoveMenu
 	DeleteMenuRecursiveFn = DeleteMenuRecursive
-	GetAllMenusFn = GetAllMenus
+	GetAllMenusFn         = GetAllMenus
 )
