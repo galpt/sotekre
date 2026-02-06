@@ -4,17 +4,15 @@ REM Usage: double-click or run from repository root
 
 setlocal
 echo [sotekre] checking Go toolchain...
-where go >nul 2>&1
-if errorlevel 1 (
-  echo ERROR: Go not found on PATH. Install Go (https://go.dev/dl/) and re-run.
-  exit /b 1
-)
+where go >nul 2>&1 || ( echo ERROR: Go not found on PATH. Install Go: https://go.dev/dl/ & exit /b 1 )
 
 pushd "%~dp0backend" || (echo backend folder not found & exit /b 1)
 
 where swag >nul 2>&1
 if errorlevel 1 (
-  echo [sotekre] swag CLI not found — docs will not be auto-generated. To generate: go install github.com/swaggo/swag/cmd/swag@v1.8.12 && go generate ./...
+  echo [sotekre] swag CLI not found — docs will not be auto-generated. To generate, run:
+  echo   go install github.com/swaggo/swag/cmd/swag@v1.8.12
+  echo   go generate ./...
 ) else (
   echo [sotekre] generating swagger docs...
   go generate ./...

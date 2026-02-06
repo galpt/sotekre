@@ -29,7 +29,7 @@ if errorlevel 1 (
 
 REM install frontend deps if needed
 if not exist "%~dp0frontend\node_modules" (
-  echo [sotekre] installing frontend dependencies (frontend/) ...
+  echo [sotekre] installing frontend dependencies - frontend/ ...
   pushd "%~dp0frontend"
   npm install
   if errorlevel 1 (
@@ -41,8 +41,8 @@ if not exist "%~dp0frontend\node_modules" (
 )
 
 REM start backend and frontend in separate windows
-start "Sotekre - Backend" cmd /k "cd /d "%~dp0backend" && .\sotekre.exe"
-start "Sotekre - Frontend" cmd /k "cd /d "%~dp0frontend" && npm run dev"
+start "Sotekre - Backend" /D "%~dp0backend" cmd /k .\sotekre.exe
+start "Sotekre - Frontend" /D "%~dp0frontend" cmd /k npm run dev
 
 echo
 echo [sotekre] launched backend and frontend.

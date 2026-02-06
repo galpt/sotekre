@@ -11,7 +11,7 @@ erDiagram
     VARCHAR url "optional"
     VARCHAR icon "optional"
     BIGINT parent_id "self reference (nullable)"
-    INT `order` "sibling position"
+    INT order "sibling position"
     DATETIME created_at
     DATETIME updated_at
     DATETIME deleted_at "soft delete"
