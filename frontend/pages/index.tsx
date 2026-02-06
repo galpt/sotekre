@@ -371,8 +371,8 @@ export default function Home() {
                             <div className="overflow-auto h-[calc(100%-65px)]">
                                 <DetailsPanel
                                     selectedItem={selectedItem}
-                                    onSave={async (id, data) => {
-                                        await handleSave(id, data)
+                                    onSave={async (item) => {
+                                        await handleSave(item)
                                         setDetailsPanelOpen(false)
                                     }}
                                     onDelete={async (id) => {

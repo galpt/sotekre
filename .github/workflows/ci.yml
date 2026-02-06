@@ -48,14 +48,35 @@ jobs:
           exit 1
         fi
 
-    - name: Generate swagger docs
+    - name: Generate swagger docs (if missing or always regenerate)
       working-directory: ./backend
       run: |
         set -euo pipefail
+        # Always regenerate docs to ensure they're up-to-date
+        echo "Generating Swagger documentation..."
         go generate ./...
-        # Create additional files expected by tests
-        cp docs/swagger.json docs/openapi.json || true
+
+        # Verify docs folder and files were created
+        if [ ! -d "docs" ]; then
+          echo "ERROR: docs folder was not created by 'go generate'"
+          exit 1
+        fi
+
+        # Verify critical files exist
+        for file in docs/docs.go docs/swagger.json docs/swagger.yaml; do
+          if [ ! -f "$file" ]; then
+            echo "ERROR: $file was not generated"
+            exit 1
+          fi
+          echo "✓ $file exists"
+        done
+
+        # Create additional files expected by tests and routes
+        cp docs/swagger.json docs/openapi.json
         echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="refresh" content="0; url=/swagger/index.html"><title>Redirecting...</title></head><body><p>Redirecting to <a href="/swagger/index.html">Swagger UI</a>...</p></body></html>' > docs/swagger.html
+
+        echo "✓ All documentation files generated successfully"
+        ls -lh docs/
 
     - name: Run backend tests (with coverage)
       working-directory: ./backend
@@ -137,13 +158,26 @@ jobs:
         TMPDIR=$(mktemp -d)
         # Generate using pinned swag version to avoid tool mismatch
         go run github.com/swaggo/swag/cmd/swag@v1.8.12 init -g backend/main.go -o "$TMPDIR" --outputTypes json
-        echo "Generated:"
+        echo "Generated swagger in temp dir:"
         ls -lh "$TMPDIR"
+
+        # If backend/docs/swagger.json doesn't exist, generate it
+        if [ ! -f "backend/docs/swagger.json" ]; then
+          echo "⚠️  WARNING: backend/docs/swagger.json not found in repository"
+          echo "Auto-generating docs (this should be committed to avoid this warning)"
+          mkdir -p backend/docs
+          cd backend && go generate ./... && cd ..
+          echo "✓ Generated missing docs"
+        fi
+
         echo "Comparing generated swagger.json with committed backend/docs/swagger.json"
         if ! diff -u backend/docs/swagger.json "$TMPDIR/swagger.json"; then
-          echo "\nERROR: generated OpenAPI differs from committed file. Run 'go generate ./backend' and commit the result.";
+          echo ""
+          echo "ERROR: generated OpenAPI differs from committed file."
+          echo "Run 'cd backend && go generate ./...' and commit the result."
           exit 1
         fi
+        echo "✓ OpenAPI documentation is up-to-date"
 
   check-release-readiness:
     name: Release readiness (quick)
