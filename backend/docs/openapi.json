@@ -1,113 +1,420 @@
 {
-    "openapi": "3.0.0",
+    "swagger": "2.0",
     "info": {
+        "description": "Minimal OpenAPI for the Menu Tree MVP",
         "title": "Sotekre — Menu Tree API",
-        "version": "0.1.0",
-        "description": "Minimal OpenAPI for the Menu Tree MVP"
+        "contact": {
+            "name": "API Support",
+            "email": "dev@example.com"
+        },
+        "version": "0.1.0"
     },
+    "host": "localhost:8080",
+    "basePath": "/api",
     "paths": {
         "/api/menus": {
             "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "menus"
+                ],
                 "summary": "Get full menu tree",
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.getMenusResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.errorResponse"
+                        }
                     }
                 }
             },
             "post": {
-                "summary": "Create menu item",
-                "requestBody": {
-                    "required": true
-                },
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "menus"
+                ],
+                "summary": "Create a menu item",
+                "parameters": [
+                    {
+                        "description": "create menu",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.createMenuInput"
+                        }
+                    }
+                ],
                 "responses": {
                     "201": {
-                        "description": "Created"
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.Menu"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.errorResponse"
+                        }
                     }
                 }
             }
         },
         "/api/menus/{id}": {
             "put": {
-                "summary": "Update menu item",
-                "responses": {
-                    "200": {
-                        "description": "OK"
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "menus"
+                ],
+                "summary": "Update menu (partial)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "menu id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "fields to update",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.updateMenuInput"
+                        }
                     }
-                }
-            },
-            "patch": {
-                "summary": "Reorder or move menu item (use specific subpaths)",
+                ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.errorResponse"
+                        }
                     }
                 }
             },
             "delete": {
-                "summary": "Delete menu (recursive)",
+                "tags": [
+                    "menus"
+                ],
+                "summary": "Delete menu item (recursive)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "menu id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/api/menus/{id}/reorder": {
-            "patch": {
-                "summary": "Reorder menu item within same parent",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "new_order": {
-                                        "type": "integer"
-                                    }
-                                },
-                                "required": [
-                                    "new_order"
-                                ]
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
                         }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.errorResponse"
+                        }
                     }
                 }
             }
         },
         "/api/menus/{id}/move": {
             "patch": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "menus"
+                ],
                 "summary": "Move menu item to different parent and position",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "new_parent_id": {
-                                        "type": [
-                                            "integer",
-                                            "null"
-                                        ]
-                                    },
-                                    "new_order": {
-                                        "type": "integer"
-                                    }
-                                }
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "menu id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "new parent and/or order",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.moveInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
                         }
                     },
-                    "responses": {
-                        "200": {
-                            "description": "OK"
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/menus/{id}/reorder": {
+            "patch": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "menus"
+                ],
+                "summary": "Reorder menu item within same parent",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "menu id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "new order",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.reorderInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.errorResponse"
                         }
                     }
                 }
             }
         }
+    },
+    "definitions": {
+        "handlers.createMenuInput": {
+            "type": "object",
+            "required": [
+                "title"
+            ],
+            "properties": {
+                "order": {
+                    "type": "integer"
+                },
+                "parent_id": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.errorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.getMenusResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.MenuNode"
+                    }
+                }
+            }
+        },
+        "handlers.moveInput": {
+            "type": "object",
+            "properties": {
+                "new_order": {
+                    "type": "integer"
+                },
+                "new_parent_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "handlers.reorderInput": {
+            "type": "object",
+            "properties": {
+                "new_order": {
+                    "type": "integer",
+                    "example": 0
+                }
+            }
+        },
+        "handlers.updateMenuInput": {
+            "type": "object",
+            "properties": {
+                "order": {
+                    "type": "integer"
+                },
+                "parent_id": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Menu": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "order": {
+                    "type": "integer"
+                },
+                "parent_id": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.MenuNode": {
+            "type": "object",
+            "properties": {
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.MenuNode"
+                    }
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "order": {
+                    "type": "integer"
+                },
+                "parent_id": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        }
     }
+}

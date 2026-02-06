@@ -1,12 +1,13 @@
 # Go
 /backend/*.exe
 /backend/bin/
-/backend/docs/
-/backend/coverage.out
+/backend/coverage
+*.exe
+
+# Node / Next
 /frontend/node_modules/
 /frontend/.next/
 /frontend/.turbo/
-
 # Env
 **/.env
 **/.env.local
@@ -14,3 +15,10 @@
 # Editor
 .vscode/
 .DS_Store
+*.swp
+*.swo
+*~
+
+# Build artifacts
+*.log
+*.tmp
