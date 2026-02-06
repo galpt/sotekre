@@ -45,7 +45,8 @@ cd backend && go test ./... -v
 - Application model: `backend/models/menu.go` (GORM)
 - Business logic & invariants: `backend/services/menu_service.go`
 
-> Note: Always update both the migration and the GORM model when changing the schema; include tests that validate the new behavior.
+> [!NOTE]
+> Always update both the migration and the GORM model when changing the schema; include tests that validate the new behavior.
 
 ## ERD (visual)
 A compact Mermaid ERD is available here and in `backend/database/ERD.md`.

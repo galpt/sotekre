@@ -156,7 +156,7 @@ func MoveMenu(ctx context.Context, id uint, newParentID *uint, newOrder *int) er
 			return err
 		}
 		// filter out the moving item if present (same-parent move)
-	tabledest := make([]models.Menu, 0, len(destSibs))
+		tabledest := make([]models.Menu, 0, len(destSibs))
 		for _, s := range destSibs {
 			if s.ID == id {
 				continue

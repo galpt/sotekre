@@ -58,9 +58,15 @@ func TestReorderMenu_service(t *testing.T) {
 	a := models.Menu{Title: "A", Order: 0}
 	b := models.Menu{Title: "B", Order: 1}
 	c := models.Menu{Title: "C", Order: 2}
-	if err := config.DB.Create(&a).Error; err != nil { t.Fatalf("create A: %v", err) }
-	if err := config.DB.Create(&b).Error; err != nil { t.Fatalf("create B: %v", err) }
-	if err := config.DB.Create(&c).Error; err != nil { t.Fatalf("create C: %v", err) }
+	if err := config.DB.Create(&a).Error; err != nil {
+		t.Fatalf("create A: %v", err)
+	}
+	if err := config.DB.Create(&b).Error; err != nil {
+		t.Fatalf("create B: %v", err)
+	}
+	if err := config.DB.Create(&c).Error; err != nil {
+		t.Fatalf("create C: %v", err)
+	}
 
 	// move C to index 1 -> expected order A, C, B
 	if err := ReorderMenu(context.Background(), c.ID, 1); err != nil {
@@ -68,9 +74,13 @@ func TestReorderMenu_service(t *testing.T) {
 	}
 
 	flat, err := GetAllMenus(context.Background())
-	if err != nil { t.Fatalf("GetAllMenus: %v", err) }
+	if err != nil {
+		t.Fatalf("GetAllMenus: %v", err)
+	}
 	roots, _ := BuildTree(flat)
-	if len(roots) != 3 { t.Fatalf("expected 3 roots, got %d", len(roots)) }
+	if len(roots) != 3 {
+		t.Fatalf("expected 3 roots, got %d", len(roots))
+	}
 	if roots[0].ID != a.ID || roots[1].ID != c.ID || roots[2].ID != b.ID {
 		t.Fatalf("unexpected order: %v", []uint{roots[0].ID, roots[1].ID, roots[2].ID})
 	}
@@ -101,10 +111,14 @@ func TestMoveMenu_service_between_parents(t *testing.T) {
 	}
 
 	flat, err := GetAllMenus(context.Background())
-	if err != nil { t.Fatalf("GetAllMenus: %v", err) }
+	if err != nil {
+		t.Fatalf("GetAllMenus: %v", err)
+	}
 	roots, _ := BuildTree(flat)
 	// roots should be A and C (B moved under A)
-	if len(roots) != 2 { t.Fatalf("expected 2 roots after move, got %d", len(roots)) }
+	if len(roots) != 2 {
+		t.Fatalf("expected 2 roots after move, got %d", len(roots))
+	}
 	if roots[0].ID != a.ID || roots[1].ID != c.ID {
 		t.Fatalf("unexpected roots after move: %v", []uint{roots[0].ID, roots[1].ID})
 	}
@@ -117,5 +131,3 @@ func TestMoveMenu_service_between_parents(t *testing.T) {
 		t.Fatalf("expected error when moving parent under descendant, got nil")
 	}
 }
-
-

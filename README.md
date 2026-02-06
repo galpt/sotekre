@@ -64,7 +64,7 @@ cd frontend
 npm install
 npm run dev
 ```
-> [!INFO]
+> [!TIP]
 > Windows quick demo: run `compile_golang.bat` then `run_project.bat` from repo root.
 
 ---
@@ -96,7 +96,7 @@ npm run dev
 - Migration: `backend/migrations/001_create_menus.sql`
 - Model: `backend/models/menu.go` (GORM struct + `AutoMigrate` in `main.go`)
 
-> [!INFO]
+> [!NOTE]
 > Quick DB facts:
 > - Single table `menus` with self‑referencing `parent_id` (unlimited depth)
 > - Sibling ordering via `order` integer; server enforces reindexing in transactions
@@ -121,7 +121,7 @@ npm run dev
 - [x] Basic test coverage (unit + integration for critical logic)
   - Evidence: `backend/services/*_test.go`, `backend/handlers/*_test.go`
 
-> [!INFO]
+> [!NOTE]
 > Core deliverables are implemented and well-documented.
 
 ---
