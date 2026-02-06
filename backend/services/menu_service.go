@@ -205,8 +205,11 @@ func MoveMenu(ctx context.Context, id uint, newParentID *uint, newOrder *int) er
 				// compute target index after removing the item
 				if newParentID == nil && oldParent == nil || (oldParent != nil && newParentID != nil && *oldParent == *newParentID) {
 					// remove current
-					if insertIdx > curIdx {
-						insertIdx-- // account for removal earlier in the list
+					// If inserting after the current index, decrement to account for removal —
+					// but do NOT decrement when the target is an append (insertIdx == len(destSibs)),
+					// because appending should place the item after all other siblings.
+					if insertIdx > curIdx && insertIdx != len(destSibs) {
+						insertIdx-- // account for removal earlier in the list (skip when appending)
 					}
 					if insertIdx == curIdx {
 						return nil // nothing to do
@@ -270,3 +273,13 @@ func MoveMenu(ctx context.Context, id uint, newParentID *uint, newOrder *int) er
 		return nil
 	})
 }
+
+// Test hooks — allow handlers to stub behavior in tests.
+var (
+	CreateMenuFn = CreateMenu
+	UpdateMenuFn = UpdateMenu
+	ReorderMenuFn = ReorderMenu
+	MoveMenuFn = MoveMenu
+	DeleteMenuRecursiveFn = DeleteMenuRecursive
+	GetAllMenusFn = GetAllMenus
+)

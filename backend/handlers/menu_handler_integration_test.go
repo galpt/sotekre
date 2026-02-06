@@ -10,9 +10,15 @@ import (
 	"testing"
 	"time"
 
+	"context"
+
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/galpt/sotekre/backend/config"
 	"github.com/galpt/sotekre/backend/models"
 	"github.com/galpt/sotekre/backend/routes"
+	"github.com/galpt/sotekre/backend/services"
+	"github.com/stretchr/testify/require"
+	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -230,4 +236,202 @@ func TestMenus_Move_Reorder_viaHTTP(t *testing.T) {
 			t.Fatalf("unexpected order after move-to-root: %v", []int{idA, idB, idC})
 		}
 	}
+}
+
+func TestGetMenus_ServiceError_returns500_sqlmock(t *testing.T) {
+	// replace DB with sqlmock and force the SELECT to return an error
+	sqlDB, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if err != nil {
+		t.Fatalf("sqlmock.New: %v", err)
+	}
+	defer sqlDB.Close()
+
+	gdb, err := gorm.Open(mysql.New(mysql.Config{Conn: sqlDB, SkipInitializeWithVersion: true}), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("gorm.Open(sqlmock): %v", err)
+	}
+	config.DB = gdb
+
+	mock.ExpectQuery("SELECT .*FROM .*menus.*").WillReturnError(fmt.Errorf("boom"))
+
+	r := routes.SetupRouter()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/menus/", nil)
+	r.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusInternalServerError, rec.Code)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetMenus_returnsEmptyArray_whenNoMenus(t *testing.T) {
+	setupInMemoryDB(t)
+	defer config.CloseDB()
+
+	r := routes.SetupRouter()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/menus/", nil)
+	r.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+	var res map[string]any
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
+	data := res["data"].([]any)
+	require.Len(t, data, 0)
+}
+
+
+func TestUpdateMenu_Success_viaHTTP(t *testing.T) {
+	setupInMemoryDB(t)
+	defer config.CloseDB()
+
+	r := routes.SetupRouter()
+
+	// create menu
+	payload := map[string]interface{}{"title": "original"}
+	b, _ := json.Marshal(payload)
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/menus/", bytes.NewReader(b))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusCreated, rec.Code)
+
+	var res map[string]any
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
+	id := int(res["data"].(map[string]any)["id"].(float64))
+
+	// update
+	update := map[string]interface{}{"title": "updated"}
+	b, _ = json.Marshal(update)
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodPut, "/api/menus/"+strconv.Itoa(id), bytes.NewReader(b))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	// verify via list
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/api/menus/", nil)
+	r.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+	var listRes map[string]any
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &listRes))
+	arr := listRes["data"].([]any)
+	require.Len(t, arr, 1)
+	got := arr[0].(map[string]any)
+	require.Equal(t, "updated", got["title"].(string))
+}
+
+func TestGetMenus_EmptyList_returns200_withEmptyArray(t *testing.T) {
+	setupInMemoryDB(t)
+	defer config.CloseDB()
+
+	r := routes.SetupRouter()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/menus/", nil)
+	r.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+	var res map[string]any
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
+	data, ok := res["data"].([]any)
+	require.True(t, ok)
+	require.Len(t, data, 0)
+}
+
+func TestMoveMenu_Handler_returns500_whenMovingIntoDescendant(t *testing.T) {
+	setupInMemoryDB(t)
+	defer config.CloseDB()
+
+	// create a -> b -> c
+	if err := config.DB.Create(&models.Menu{Title: "a"}).Error; err != nil {
+		t.Fatalf("create a: %v", err)
+	}
+	var a models.Menu
+	config.DB.First(&a, "title = ?", "a")
+	if err := config.DB.Create(&models.Menu{Title: "b", ParentID: &a.ID}).Error; err != nil {
+		t.Fatalf("create b: %v", err)
+	}
+	var b models.Menu
+	config.DB.First(&b, "title = ?", "b")
+	if err := config.DB.Create(&models.Menu{Title: "c", ParentID: &b.ID}).Error; err != nil {
+		t.Fatalf("create c: %v", err)
+	}
+	var c models.Menu
+	config.DB.First(&c, "title = ?", "c")
+
+	r := routes.SetupRouter()
+	body := bytes.NewReader([]byte(fmt.Sprintf(`{"new_parent_id": %d}`, c.ID)))
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPatch, "/api/menus/"+strconv.Itoa(int(a.ID))+"/move", body)
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusInternalServerError, rec.Code)
+}
+
+func TestDeleteMenu_ServiceError_returns500_sqlmock(t *testing.T) {
+	orig := services.DeleteMenuRecursiveFn
+	defer func() { services.DeleteMenuRecursiveFn = orig }()
+	services.DeleteMenuRecursiveFn = func(ctx context.Context, id uint) error { return fmt.Errorf("boom") }
+
+	r := routes.SetupRouter()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodDelete, "/api/menus/42", nil)
+	r.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusInternalServerError, rec.Code)
+}
+
+func TestReorderMenu_ServiceError_returns500_sqlmock(t *testing.T) {
+	// stub the service to return an error and assert the handler returns 500 —
+	// keeps handler-level tests deterministic and avoids SQL-level brittleness.
+	orig := services.ReorderMenuFn
+	defer func() { services.ReorderMenuFn = orig }()
+	services.ReorderMenuFn = func(ctx context.Context, id uint, newOrder int) error { return fmt.Errorf("boom") }
+
+	r := routes.SetupRouter()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPatch, "/api/menus/1/reorder", bytes.NewReader([]byte(`{"new_order": 1}`)))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusInternalServerError, rec.Code)
+}
+
+func TestMoveMenu_Handler_sqlExecError_returns500_sqlmock(t *testing.T) {
+	orig := services.MoveMenuFn
+	defer func() { services.MoveMenuFn = orig }()
+	services.MoveMenuFn = func(ctx context.Context, id uint, newParentID *uint, newOrder *int) error { return fmt.Errorf("boom") }
+
+	r := routes.SetupRouter()
+	rec := httptest.NewRecorder()
+	body := bytes.NewReader([]byte(`{"new_parent_id": null, "new_order": 0}`))
+	req := httptest.NewRequest(http.MethodPatch, "/api/menus/2/move", body)
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusInternalServerError, rec.Code)
+}
+
+func TestCreateMenu_ServiceError_returns500_sqlmock(t *testing.T) {
+	orig := services.CreateMenuFn
+	defer func() { services.CreateMenuFn = orig }()
+	services.CreateMenuFn = func(ctx context.Context, m *models.Menu) error { return fmt.Errorf("boom") }
+
+	r := routes.SetupRouter()
+	payload := map[string]interface{}{"title": "x"}
+	b, _ := json.Marshal(payload)
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/menus/", bytes.NewReader(b))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusInternalServerError, rec.Code)
+}
+
+func TestUpdateMenu_ServiceError_returns500_sqlmock(t *testing.T) {
+	orig := services.UpdateMenuFn
+	defer func() { services.UpdateMenuFn = orig }()
+	services.UpdateMenuFn = func(ctx context.Context, id uint, upd map[string]interface{}) error { return fmt.Errorf("boom") }
+
+	r := routes.SetupRouter()
+	update := map[string]interface{}{"title": "updated"}
+	b, _ := json.Marshal(update)
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/menus/1", bytes.NewReader(b))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusInternalServerError, rec.Code)
 }

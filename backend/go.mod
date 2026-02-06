@@ -3,6 +3,7 @@ module github.com/galpt/sotekre/backend
 go 1.23.0
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/gin-contrib/cors v1.5.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/joho/godotenv v1.5.1

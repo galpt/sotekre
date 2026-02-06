@@ -6,6 +6,7 @@ package config
 // - go-sql-driver DSN options: https://github.com/go-sql-driver/mysql
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
@@ -18,12 +19,14 @@ import (
 var DB *gorm.DB
 
 // Test hooks (overridable in tests).
-// - openGorm wraps gorm.Open so tests can inject failures or alternate drivers.
-// - sleepFn is used for retry backoff and can be replaced to avoid slow tests.
+// - OpenGorm wraps gorm.Open so tests can inject failures or alternate drivers.
+// - SleepFn is used for retry backoff and can be replaced to avoid slow tests.
 // These defaults are identical to the real implementations in production.
 var (
-	openGorm = gorm.Open
-	sleepFn  = time.Sleep
+	OpenGorm = gorm.Open
+	SleepFn  = time.Sleep
+	// test hook: allow ping behavior to be overridden in tests
+	PingFn = func(db *sql.DB) error { return db.Ping() }
 )
 
 func envOr(key, def string) string {
@@ -48,7 +51,7 @@ func InitDB() error {
 	var err error
 	// Retry loop for transient DB startup (useful with docker-compose)
 	for i := 0; i < 6; i++ {
-		DB, err = openGorm(mysql.Open(dsn), &gorm.Config{})
+		DB, err = OpenGorm(mysql.Open(dsn), &gorm.Config{})
 		if err == nil {
 			// configure underlying sql.DB
 			sqlDB, derr := DB.DB()
@@ -58,8 +61,8 @@ func InitDB() error {
 			sqlDB.SetMaxOpenConns(25)
 			sqlDB.SetMaxIdleConns(5)
 			sqlDB.SetConnMaxLifetime(5 * time.Minute)
-			// quick ping
-			if pingErr := sqlDB.Ping(); pingErr != nil {
+			// quick ping (testable via PingFn)
+			if pingErr := PingFn(sqlDB); pingErr != nil {
 				err = pingErr
 			} else {
 				log.Printf("connected to database %s@%s:%s", user, host, port)
@@ -68,7 +71,7 @@ func InitDB() error {
 		}
 
 		log.Printf("db connect attempt %d failed: %v — retrying in 2s", i+1, err)
-		sleepFn(2 * time.Second)
+		SleepFn(2 * time.Second)
 	}
 
 	return fmt.Errorf("could not connect to database: %w", err)

@@ -61,7 +61,7 @@ var (
 // @Failure 500 {object} errorResponse
 // @Router /api/menus [get]
 func GetMenus(c *gin.Context) {
-	flat, err := services.GetAllMenus(c.Request.Context())
+	flat, err := services.GetAllMenusFn(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -101,7 +101,7 @@ func CreateMenu(c *gin.Context) {
 	if in.Order != nil {
 		m.Order = *in.Order
 	}
-	if err := services.CreateMenu(c.Request.Context(), m); err != nil {
+	if err := services.CreateMenuFn(c.Request.Context(), m); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -143,7 +143,7 @@ func UpdateMenu(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "no updatable fields provided"})
 		return
 	}
-	if err := services.UpdateMenu(c.Request.Context(), uint(id64), upd); err != nil {
+	if err := services.UpdateMenuFn(c.Request.Context(), uint(id64), upd); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -179,7 +179,7 @@ func ReorderMenu(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "new_order is required and must be >= 0"})
 		return
 	}
-	if err := services.ReorderMenu(c.Request.Context(), uint(id64), *in.NewOrder); err != nil {
+	if err := services.ReorderMenuFn(c.Request.Context(), uint(id64), *in.NewOrder); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -216,7 +216,7 @@ func MoveMenu(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "new_order must be >= 0"})
 		return
 	}
-	if err := services.MoveMenu(c.Request.Context(), uint(id64), in.NewParentID, in.NewOrder); err != nil {
+	if err := services.MoveMenuFn(c.Request.Context(), uint(id64), in.NewParentID, in.NewOrder); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -238,7 +238,7 @@ func DeleteMenu(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	if err := services.DeleteMenuRecursive(c.Request.Context(), uint(id64)); err != nil {
+	if err := services.DeleteMenuRecursiveFn(c.Request.Context(), uint(id64)); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

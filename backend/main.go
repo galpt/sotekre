@@ -29,10 +29,7 @@ func init() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 }
 
-func main() {
-	// load .env if present
-	_ = godotenv.Load()
-
+func run(quit <-chan os.Signal) error {
 	// Helpful runtime hint: if the app is started in Docker (DB_HOST=db) but the
 	// DB password is empty, the official MySQL image will fail to start because
 	// it requires a non-empty MYSQL_ROOT_PASSWORD. This is *only* a warning.
@@ -41,13 +38,13 @@ func main() {
 	}
 
 	if err := config.InitDB(); err != nil {
-		log.Fatalf("failed to connect to db: %v", err)
+		return fmt.Errorf("failed to connect to db: %w", err)
 	}
 	defer config.CloseDB()
 
 	// Auto-migrate schema (safe for interview / MVP)
 	if err := config.DB.AutoMigrate(&models.Menu{}); err != nil {
-		log.Fatalf("auto-migrate failed: %v", err)
+		return fmt.Errorf("auto-migrate failed: %w", err)
 	}
 
 	r := routes.SetupRouter()
@@ -72,17 +69,27 @@ func main() {
 		}
 	}()
 
-	// graceful shutdown
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	// graceful shutdown - delegate signal handling to caller (tests can inject)
 	<-quit
 	log.Println("shutting down server...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("server forced to shutdown: %v", err)
+		return fmt.Errorf("server forced to shutdown: %w", err)
 	}
 
 	log.Println("server stopped")
+	return nil
+}
+
+func main() {
+	// load .env if present
+	_ = godotenv.Load()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	if err := run(quit); err != nil {
+		log.Fatalf("%v", err)
+	}
 }
