@@ -12,6 +12,7 @@ type MenuTreeProps = {
     items: MenuItem[]
     selectedId?: string | null
     onSelectItem?: (item: MenuItem) => void
+    onAddChild?: (parentItem: MenuItem) => void
     expandedAll?: boolean
 }
 
@@ -19,12 +20,14 @@ function TreeNode({
     item,
     selectedId,
     onSelectItem,
+    onAddChild,
     depth = 0,
     forceExpanded
 }: {
     item: MenuItem
     selectedId?: string | null
     onSelectItem?: (item: MenuItem) => void
+    onAddChild?: (parentItem: MenuItem) => void
     depth?: number
     forceExpanded?: boolean
 }) {
@@ -68,7 +71,21 @@ function TreeNode({
                 ) : (
                     <div className="w-4 h-4"></div>
                 )}
-                <span className="text-sm text-gray-800">{item.name}</span>
+                <span className="text-sm text-gray-800 flex-1">{item.name}</span>
+                {hasChildren && expanded && (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            onAddChild?.(item)
+                        }}
+                        className="w-5 h-5 bg-[#0D47A1] hover:bg-[#083A89] text-white rounded flex items-center justify-center transition-colors"
+                        title="Add child menu"
+                    >
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            <path d="M6 2V10M2 6H10" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                    </button>
+                )}
                 {hasChildren && (
                     <span className="ml-1 w-5 h-5 bg-[#0D47A1] text-white rounded-full flex items-center justify-center text-xs font-medium">
                         {item.children!.length}
@@ -83,6 +100,7 @@ function TreeNode({
                             item={child}
                             selectedId={selectedId}
                             onSelectItem={onSelectItem}
+                            onAddChild={onAddChild}
                             depth={depth + 1}
                             forceExpanded={forceExpanded}
                         />
@@ -93,7 +111,7 @@ function TreeNode({
     )
 }
 
-export default function MenuTree({ items, selectedId, onSelectItem, expandedAll }: MenuTreeProps) {
+export default function MenuTree({ items, selectedId, onSelectItem, onAddChild, expandedAll }: MenuTreeProps) {
     return (
         <div className="w-full">
             {items.map((item) => (
@@ -102,6 +120,7 @@ export default function MenuTree({ items, selectedId, onSelectItem, expandedAll 
                     item={item}
                     selectedId={selectedId}
                     onSelectItem={onSelectItem}
+                    onAddChild={onAddChild}
                     depth={0}
                     forceExpanded={expandedAll}
                 />

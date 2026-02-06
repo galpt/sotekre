@@ -43,9 +43,13 @@ cd backend && go test ./... -v
 ## Schema & authoritative sources
 - Migration (MySQL): `backend/migrations/001_create_menus.sql` — DDL and indexes
 - Application model: `backend/models/menu.go` (GORM)
+- Sample data: `backend/database/sotekre_menus_import.sql` — Import file for quick setup
 - Business logic & invariants: `backend/services/menu_service.go`
 
 > [!NOTE]
+> The GORM model (`menu.go`) includes additional fields (`icon`, `deleted_at`) not present in the sample SQL import file. When you run the backend, GORM's `AutoMigrate` will add these columns automatically. The import SQL creates the minimal required schema.
+
+> [!TIP]
 > Always update both the migration and the GORM model when changing the schema; include tests that validate the new behavior.
 
 ## ERD (visual)
@@ -54,14 +58,13 @@ A compact Mermaid ERD is available here and in `backend/database/ERD.md`.
 ```mermaid
 erDiagram
   MENUS {
-    BIGINT id PK "auto-increment"
-    VARCHAR title
-    VARCHAR url
-    BIGINT parent_id "nullable, self-reference"
-    INT order "sibling position"
-    DATETIME created_at
-    DATETIME updated_at
-    DATETIME deleted_at "soft delete"
+    BIGINT_UNSIGNED id PK "auto-increment"
+    VARCHAR_255 title "NOT NULL"
+    VARCHAR_255 url "nullable"
+    BIGINT_UNSIGNED parent_id "nullable, self-reference"
+    INT order "default 0, sibling position"
+    DATETIME_3 created_at "millisecond precision"
+    DATETIME_3 updated_at "millisecond precision"
   }
 
   MENUS ||--o{ MENUS : "parent -> children"
@@ -82,6 +85,37 @@ Migration workflow (recommended):
 1. Add SQL under `backend/migrations/` with an incremental filename.
 2. Update `backend/models/menu.go` to reflect the model.
 3. Add tests (`backend/services` / `backend/handlers`) covering the behavior.
+
+## Sample data import (quick start)
+For rapid demo setup, use the included sample data file that matches the Figma design:
+
+**File:** `backend/database/sotekre_menus_import.sql`
+
+**Contents:** 19 pre-configured menu items matching the application design, including:
+- system management (root)
+- System Management → Systems → System Code, Menus, API List
+- Users & Groups → Users, Groups
+- 사용자 승인 (User Approval with Korean text)
+
+### Import via phpMyAdmin (XAMPP)
+1. Open phpMyAdmin: `http://localhost/phpmyadmin`
+2. Select database `sotekre_dev` (create if needed)
+3. Click "Import" tab
+4. Choose file: `backend/database/sotekre_menus_import.sql`
+5. Click "Go"
+6. Refresh frontend at `http://localhost:3000`
+
+### Import via command line
+```bash
+# If MySQL is in PATH
+mysql -u root -P 3306 -h 127.0.0.1 sotekre_dev < backend/database/sotekre_menus_import.sql
+
+# Verify
+mysql -u root -P 3306 -h 127.0.0.1 sotekre_dev -e "SELECT COUNT(*) FROM menus;"
+```
+
+> [!NOTE]
+> The import file includes `TRUNCATE TABLE menus;` to clear existing data. Remove lines 31-33 if you want to keep existing menus.
 
 ## Example queries (verification)
 - Ordered root items:

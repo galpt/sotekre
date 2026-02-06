@@ -34,10 +34,10 @@ func SetupRouter() *gin.Engine {
 		{
 			menus.GET("/", handlers.GetMenus)
 			menus.POST("/", handlers.CreateMenu)
-			menus.PUT(":id", handlers.UpdateMenu)
-			menus.PATCH(":id/reorder", handlers.ReorderMenu)
-			menus.PATCH(":id/move", handlers.MoveMenu)
-			menus.DELETE(":id", handlers.DeleteMenu)
+			menus.PUT("/:id", handlers.UpdateMenu)
+			menus.PATCH("/:id/reorder", handlers.ReorderMenu)
+			menus.PATCH("/:id/move", handlers.MoveMenu)
+			menus.DELETE("/:id", handlers.DeleteMenu)
 		}
 	}
 

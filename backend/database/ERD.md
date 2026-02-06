@@ -6,27 +6,32 @@ This diagram and notes are intended for reviewers who want a quick, accurate vie
 ```mermaid
 erDiagram
   MENUS {
-    BIGINT id PK "auto-increment"
-    VARCHAR title "visible label"
-    VARCHAR url "optional"
-    VARCHAR icon "optional"
-    BIGINT parent_id "self reference (nullable)"
-    INT order "sibling position"
-    DATETIME created_at
-    DATETIME updated_at
-    DATETIME deleted_at "soft delete"
+    BIGINT_UNSIGNED id PK "auto-increment"
+    VARCHAR_255 title "visible label, NOT NULL"
+    VARCHAR_255 url "optional path/route"
+    BIGINT_UNSIGNED parent_id "self reference (nullable)"
+    INT order "sibling position, default 0"
+    DATETIME_3 created_at "millisecond precision"
+    DATETIME_3 updated_at "millisecond precision"
   }
 
   MENUS ||--o{ MENUS : "parent -> children"
 ```
 
 ## Key points
-- Adjacency‑list model (single table) — simple and easy to reason about for CRUD and reorder operations.
-- No DB-enforced FK: application logic enforces deletion/move invariants and prevents cycles.
-- Sibling ordering is stable and enforced in the service layer inside transactions.
+- **Adjacency‑list model** (single table) — simple and easy to reason about for CRUD and reorder operations.
+- **No DB-enforced FK**: application logic enforces deletion/move invariants and prevents cycles.
+- **Sibling ordering**: stable and enforced in the service layer inside transactions.
+- **No soft delete in SQL**: The Go model includes `deleted_at` via GORM, but the import SQL doesn't create this column. GORM AutoMigrate will add it on first run.
+- **Indexes**: `idx_menus_parent_id` on `parent_id`, `idx_menus_order` on `order` for fast sibling queries.
 
 ## Migration / DDL
 Authoritative DDL: `backend/migrations/001_create_menus.sql` (contains indexes used in queries and tests).
+
+Sample data import: `backend/database/sotekre_menus_import.sql` (19 menu items matching Figma design).
+
+> [!NOTE]
+> The diagram above shows the SQL schema from the import file. The GORM model (`models/menu.go`) includes additional fields (`icon`, `deleted_at`) that will be added automatically by AutoMigrate when the backend first runs.
 
 ## Example verification queries
 - Ordered root list:
