@@ -1,4 +1,4 @@
-# Sotekre — Menu Tree (galih-jawaban)
+# Sotekre — Menu Tree
 
 [![CI](https://github.com/galpt/sotekre/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/galpt/sotekre/actions/workflows/ci.yml) [![Release](https://github.com/galpt/sotekre/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/galpt/sotekre/actions/workflows/release.yml) [![Coverage](https://codecov.io/gh/galpt/sotekre/branch/main/graph/badge.svg)](https://codecov.io/gh/galpt/sotekre)
 
@@ -87,7 +87,8 @@ npm run dev
   - PATCH /api/menus/:id/move
   - DELETE /api/menus/:id
 
-(Generate docs locally: `cd backend && go generate ./...` or `go run github.com/swaggo/swag/cmd/swag@latest init -g main.go -o ./docs`)
+> [!TIP]
+> To generate docs locally: `cd backend && go generate ./...` or `go run github.com/swaggo/swag/cmd/swag@latest init -g main.go -o ./docs`)
 
 ---
 
@@ -132,7 +133,10 @@ npm run dev
 - Typecheck frontend: `cd frontend && npx tsc --noEmit`
 - Generate & view docs: `cd backend && go generate ./...` → open `/swagger/index.html`
 
-> Coverage: the badge at the top of this README shows the latest Go coverage reported by CI (may require one CI run to appear).
+> [!NOTE]
+> The `codecov` badge at the top of this README shows the latest Go coverage reported by CI (may require one CI run to appear).
+>
+> Uploading coverage for commits on protected branches requires a `CODECOV_TOKEN` repository secret (or OIDC). The CI will **skip** the Codecov upload when that secret is not set so the build stays green — to enable uploads add `CODECOV_TOKEN` in the repository **Settings → Secrets → Actions**. See Codecov docs for details.
 
 ---
 

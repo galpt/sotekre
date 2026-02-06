@@ -55,11 +55,19 @@ jobs:
         name: backend-coverage
         path: ./backend/coverage.out
 
-    - name: Upload coverage to Codecov
+    - name: Upload coverage to Codecov (token present)
+      if: ${{ secrets.CODECOV_TOKEN != '' }}
       uses: codecov/codecov-action@v4
       with:
+        token: ${{ secrets.CODECOV_TOKEN }}
         files: ./backend/coverage.out
         fail_ci_if_error: true
+
+    - name: Skip Codecov upload (no token)
+      if: ${{ secrets.CODECOV_TOKEN == '' }}
+      run: |
+        echo "CODECOV_TOKEN not set — skipping Codecov upload (protected branches require a token)."
+        echo "To enable uploads add CODECOV_TOKEN to repository Secrets (see README)."
 
   frontend:
     name: Frontend — typecheck & lint
