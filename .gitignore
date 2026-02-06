@@ -1,9 +1,8 @@
 # Go
 /backend/*.exe
 /backend/bin/
-*.exe
-
-# Node / Next
+/backend/docs/
+/backend/coverage.out
 /frontend/node_modules/
 /frontend/.next/
 /frontend/.turbo/

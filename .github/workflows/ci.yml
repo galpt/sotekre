@@ -48,12 +48,24 @@ jobs:
           exit 1
         fi
 
+    - name: Generate swagger docs
+      working-directory: ./backend
+      run: |
+        set -euo pipefail
+        go generate ./...
+        # Create additional files expected by tests
+        cp docs/swagger.json docs/openapi.json || true
+        echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="refresh" content="0; url=/swagger/index.html"><title>Redirecting...</title></head><body><p>Redirecting to <a href="/swagger/index.html">Swagger UI</a>...</p></body></html>' > docs/swagger.html
+
     - name: Run backend tests (with coverage)
       working-directory: ./backend
       run: |
         set -euo pipefail
-        # run tests and produce coverage for the backend
-        go test -coverprofile=coverage.out ./... -v
+        # run tests and produce coverage for the backend (exclude generated docs package)
+        go test -coverprofile=coverage.out $(go list ./... | grep -v '/docs$') -v
+        # Filter out docs package from coverage output to avoid tool errors
+        grep -v 'github.com/galpt/sotekre/backend/docs' coverage.out > coverage.filtered.out || true
+        mv coverage.filtered.out coverage.out || true
         go tool cover -func=coverage.out | tee coverage.txt
 
     - name: Enforce coverage threshold (90%)

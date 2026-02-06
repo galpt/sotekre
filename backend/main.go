@@ -6,7 +6,7 @@
 // @host localhost:8080
 // @BasePath /api
 //
-//go:generate swag init -g main.go -o ./docs --outputTypes go,json,yaml
+//go:generate go run github.com/swaggo/swag/cmd/swag@v1.8.12 init -g main.go -o ./docs --outputTypes go,json,yaml
 package main
 
 import (
