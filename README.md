@@ -136,7 +136,11 @@ npm run dev
 > [!NOTE]
 > The `codecov` badge at the top of this README shows the latest Go coverage reported by CI (may require one CI run to appear).
 >
-> Uploading coverage for commits on protected branches requires a `CODECOV_TOKEN` repository secret (or OIDC). The CI will **skip** the Codecov upload when that secret is not set so the build stays green — to enable uploads add `CODECOV_TOKEN` in the repository **Settings → Secrets → Actions**. See Codecov docs for details.
+> The CI now attempts to upload coverage to Codecov using **GitHub OIDC** by default (no secret required). If OIDC is not accepted by your Codecov organization, the workflow will fall back to a `CODECOV_TOKEN` repository secret when provided. Coverage upload is best-effort and will **not** fail the build if the upload is rejected — to force uploads for protected branches add `CODECOV_TOKEN` in **Settings → Secrets → Actions**. See Codecov docs for OIDC and token configuration.
+>
+> To verify: look at the Actions log for the Codecov step (it will indicate whether OIDC or token auth was used). If you need token uploads for protected branches, add `CODECOV_TOKEN` or enable tokenless uploads in your Codecov org settings.
+>
+> Docs: https://docs.codecov.com/docs/codecov-tokens#uploading-without-a-token — and https://docs.github.com/en/actions/concepts/security-openid-connect
 
 ---
 
