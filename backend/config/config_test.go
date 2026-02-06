@@ -101,3 +101,40 @@ func TestInitDB_pingPermanentFailure_returnsError(t *testing.T) {
 	reqErr := InitDB()
 	require.Error(t, reqErr)
 }
+
+func TestInitDB_respectsEnvRetryConfig(t *testing.T) {
+	origOpen := OpenGorm
+	origSleep := SleepFn
+	origRetries := os.Getenv("DB_CONNECT_RETRIES")
+	origDelay := os.Getenv("DB_RETRY_DELAY_MS")
+	defer func() {
+		OpenGorm = origOpen
+		SleepFn = origSleep
+		if origRetries == "" {
+			os.Unsetenv("DB_CONNECT_RETRIES")
+		} else {
+			os.Setenv("DB_CONNECT_RETRIES", origRetries)
+		}
+		if origDelay == "" {
+			os.Unsetenv("DB_RETRY_DELAY_MS")
+		} else {
+			os.Setenv("DB_RETRY_DELAY_MS", origDelay)
+		}
+	}()
+
+	// force open to fail
+	OpenGorm = func(dialector gorm.Dialector, opts ...gorm.Option) (*gorm.DB, error) {
+		return nil, errors.New("open-failure")
+	}
+
+	calls := 0
+	SleepFn = func(d time.Duration) { calls++ }
+
+	os.Setenv("DB_CONNECT_RETRIES", "3")
+	os.Setenv("DB_RETRY_DELAY_MS", "10")
+
+	err := InitDB()
+	require.Error(t, err)
+	// when retries==3 and open always fails, SleepFn should be called retries-1 times
+	require.Equal(t, 2, calls, "SleepFn should be called retries-1 times")
+}

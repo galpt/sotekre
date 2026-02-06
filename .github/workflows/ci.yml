@@ -19,6 +19,8 @@ jobs:
       id-token: write
     env:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      DB_CONNECT_RETRIES: "1"
+      DB_RETRY_DELAY_MS: "100"
     steps:
     - uses: actions/checkout@v4
 
