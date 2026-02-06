@@ -61,11 +61,8 @@ jobs:
       working-directory: ./backend
       run: |
         set -euo pipefail
-        # run tests and produce coverage for the backend (exclude generated docs package)
-        go test -coverprofile=coverage.out $(go list ./... | grep -v '/docs$') -v
-        # Filter out docs package from coverage output to avoid tool errors
-        grep -v 'github.com/galpt/sotekre/backend/docs' coverage.out > coverage.filtered.out || true
-        mv coverage.filtered.out coverage.out || true
+        # run tests and produce coverage for the backend
+        go test -coverprofile=coverage.out ./... -v
         go tool cover -func=coverage.out | tee coverage.txt
 
     - name: Enforce coverage threshold (90%)
