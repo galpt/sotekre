@@ -16,6 +16,9 @@ import (
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
+	// Disable automatic redirect for trailing slashes to prevent CORS issues
+	r.RedirectTrailingSlash = false
+
 	// Simple CORS (adjust for production)
 	cfg := cors.DefaultConfig()
 	allow := os.Getenv("CORS_ALLOW_ORIGINS")
@@ -32,8 +35,8 @@ func SetupRouter() *gin.Engine {
 	{
 		menus := api.Group("/menus")
 		{
-			menus.GET("/", handlers.GetMenus)
-			menus.POST("/", handlers.CreateMenu)
+			menus.GET("", handlers.GetMenus)
+			menus.POST("", handlers.CreateMenu)
 			menus.PUT("/:id", handlers.UpdateMenu)
 			menus.PATCH("/:id/reorder", handlers.ReorderMenu)
 			menus.PATCH("/:id/move", handlers.MoveMenu)
