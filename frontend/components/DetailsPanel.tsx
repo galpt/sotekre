@@ -39,7 +39,7 @@ export default function DetailsPanel({ selectedItem, onSave, onDelete }: Details
             onSave?.({
                 ...selectedItem,
                 name: editedName,
-                url: editedUrl
+                url: editedUrl.trim() || undefined // Convert empty string to undefined
             })
         }
     }

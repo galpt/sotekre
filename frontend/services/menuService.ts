@@ -39,7 +39,9 @@ const api = axios.create({
 export const menuService = {
     // Get all menus
     async getMenus(): Promise<MenuNode[]> {
-        const response = await api.get<MenuResponse>('/api/menus')
+        // Add cache-busting parameter to ensure fresh data
+        const timestamp = new Date().getTime()
+        const response = await api.get<MenuResponse>(`/api/menus?_t=${timestamp}`)
         return response.data.data || []
     },
 

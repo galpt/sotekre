@@ -49,6 +49,8 @@ export default function Home() {
     const [newMenuUrl, setNewMenuUrl] = useState('')
     const [newMenuParentId, setNewMenuParentId] = useState<string>('')
     const [searchQuery, setSearchQuery] = useState('')
+    const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [detailsPanelOpen, setDetailsPanelOpen] = useState(false)
 
     // Load menus from API
     useEffect(() => {
@@ -80,12 +82,16 @@ export default function Home() {
 
     const handleSave = async (item: MenuItem) => {
         try {
-            // Here you can implement update logic
             console.log('Saving item:', item)
-            await menuService.updateMenu(parseInt(item.id), {
+            // Convert empty string url to undefined to properly handle NULL in database
+            const updateData: { title: string; url?: string } = {
                 title: item.name,
-                url: item.url,
-            })
+            }
+            if (item.url && item.url.trim()) {
+                updateData.url = item.url.trim()
+            }
+
+            await menuService.updateMenu(parseInt(item.id), updateData)
             await loadMenus() // Reload after save
         } catch (err: any) {
             console.error('Failed to save:', err)
@@ -95,12 +101,42 @@ export default function Home() {
 
     const handleDelete = async (id: string) => {
         try {
-            await menuService.deleteMenu(parseInt(id))
+            console.log(`[DELETE] Starting delete for ID: ${id}`)
+            const numericId = parseInt(id)
+            if (isNaN(numericId)) {
+                throw new Error(`Invalid ID: ${id}`)
+            }
+
+            console.log(`[DELETE] Calling API to delete ID: ${numericId}`)
+            await menuService.deleteMenu(numericId)
+            console.log(`[DELETE] API call successful, clearing selection`)
+
             setSelectedItem(null)
-            await loadMenus() // Reload after delete
+
+            console.log(`[DELETE] Reloading menus...`)
+            await loadMenus()
+            console.log(`[DELETE] Reload complete`)
         } catch (err: any) {
-            console.error('Failed to delete:', err)
-            alert('Failed to delete: ' + err.message)
+            console.error('[DELETE] Failed to delete:', err)
+            alert('Failed to delete: ' + (err.response?.data?.error || err.message))
+        }
+    }
+
+    const handleMoveItem = async (itemId: string, newParentId: string | null, newOrder: number) => {
+        try {
+            console.log(`[MOVE] Moving item ${itemId} to parent ${newParentId} at order ${newOrder}`)
+            const numericId = parseInt(itemId)
+            const numericParentId = newParentId ? parseInt(newParentId) : null
+
+            await menuService.moveMenu(numericId, numericParentId, newOrder)
+            console.log(`[MOVE] Move successful, reloading...`)
+            await loadMenus()
+            console.log(`[MOVE] Reload complete`)
+        } catch (err: any) {
+            console.error('[MOVE] Failed to move item:', err)
+            alert('Failed to move item: ' + (err.response?.data?.error || err.message))
+            // Reload to revert UI to actual state
+            await loadMenus()
         }
     }
 
@@ -111,11 +147,25 @@ export default function Home() {
         }
 
         try {
-            await menuService.createMenu({
-                title: newMenuTitle,
-                url: newMenuUrl || undefined,
-                parent_id: newMenuParentId ? parseInt(newMenuParentId) : undefined,
-            })
+            const createData: {
+                title: string
+                url?: string
+                parent_id?: number
+            } = {
+                title: newMenuTitle.trim(),
+            }
+
+            // Only add url if it's not empty
+            if (newMenuUrl && newMenuUrl.trim()) {
+                createData.url = newMenuUrl.trim()
+            }
+
+            // Only add parent_id if specified
+            if (newMenuParentId) {
+                createData.parent_id = parseInt(newMenuParentId)
+            }
+
+            await menuService.createMenu(createData)
             setShowCreateModal(false)
             setNewMenuTitle('')
             setNewMenuUrl('')
@@ -171,17 +221,38 @@ export default function Home() {
 
     const filteredMenuData = filterMenuItems(menuData, searchQuery)
 
+    const handleSelectItem = (item: MenuItem) => {
+        setSelectedItem(item)
+        setDetailsPanelOpen(true)
+    }
+
     return (
         <div className="flex h-screen bg-gray-50">
+            {/* Mobile Menu Button */}
+            <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="md:hidden fixed top-4 left-4 z-50 p-2 bg-[#0D47A1] text-white rounded-lg"
+            >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+
             {/* Sidebar */}
-            <Sidebar activeMenu="Menus" />
+            <div className={`fixed md:static inset-0 z-40 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+                } md:translate-x-0 transition-transform duration-300`}>
+                <div className="md:hidden fixed inset-0 bg-black bg-opacity-50" onClick={() => setSidebarOpen(false)} />
+                <div className="relative">
+                    <Sidebar activeMenu="Menus" />
+                </div>
+            </div>
 
             {/* Main Content */}
-            <div className="ml-[188px] flex-1 flex">
+            <div className="flex-1 flex flex-col md:flex-row md:ml-[188px]">
                 {/* Left Panel - Menu Tree */}
-                <div className="flex-1 flex flex-col">
+                <div className="flex-1 flex flex-col w-full md:w-auto">
                     {/* Header */}
-                    <div className="bg-white border-b px-6 py-4">
+                    <div className="bg-white border-b px-4 md:px-6 py-4">
                         <div className="flex items-center gap-3 mb-4">
                             <div className="w-10 h-10 bg-[#0D47A1] rounded-lg flex items-center justify-center">
                                 <svg
@@ -213,31 +284,31 @@ export default function Home() {
                                     <option value="system management">system management</option>
                                 </select>
                             </div>
-                            <div className="flex gap-2 mt-6">
+                            <div className="flex flex-wrap gap-2">
                                 <button
                                     onClick={() => { setNewMenuParentId(''); setShowCreateModal(true); }}
-                                    className="px-4 py-2 bg-[#0D47A1] hover:bg-[#083A89] text-white text-sm font-medium rounded-lg transition-colors"
+                                    className="px-3 md:px-4 py-2 bg-[#0D47A1] hover:bg-[#083A89] text-white text-xs md:text-sm font-medium rounded-lg transition-colors"
                                 >
-                                    + Create Menu
+                                    + Create
                                 </button>
                                 <button
                                     onClick={handleExpandAll}
-                                    className="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white text-sm font-medium rounded-lg transition-colors"
+                                    className="px-3 md:px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white text-xs md:text-sm font-medium rounded-lg transition-colors"
                                 >
-                                    Expand All
+                                    Expand
                                 </button>
                                 <button
                                     onClick={handleCollapseAll}
-                                    className="px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg transition-colors"
+                                    className="px-3 md:px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs md:text-sm font-medium rounded-lg transition-colors"
                                 >
-                                    Collapse All
+                                    Collapse
                                 </button>
                             </div>
                         </div>
                     </div>
 
                     {/* Search Bar */}
-                    <div className="bg-white border-b px-6 py-3">
+                    <div className="bg-white border-b px-4 md:px-6 py-3">
                         <input
                             type="text"
                             value={searchQuery}
@@ -249,8 +320,9 @@ export default function Home() {
 
                     {/* Tree View */}
                     <div className="flex-1 overflow-auto bg-white p-4">{loading ? (
-                        <div className="flex items-center justify-center h-full">
-                            <div className="text-gray-500">Loading menus...</div>
+                        <div className="flex flex-col items-center justify-center h-full space-y-4">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0D47A1]"></div>
+                            <div className="text-gray-500 text-sm">Loading menus...</div>
                         </div>
                     ) : error ? (
                         <div className="flex items-center justify-center h-full">
@@ -266,18 +338,52 @@ export default function Home() {
                         <MenuTree
                             items={filteredMenuData}
                             selectedId={selectedItem?.id}
-                            onSelectItem={setSelectedItem}
+                            onSelectItem={handleSelectItem}
                             onAddChild={handleAddChild}
                             expandedAll={expandedAll}
+                            onMoveItem={handleMoveItem}
                         />
                     )}
                     </div>
                 </div>
 
-                {/* Right Panel - Details */}
-                <div className="w-[400px] bg-white border-l">
+                {/* Right Panel - Details (Desktop) */}
+                <div className="hidden md:block md:w-[400px] bg-white border-l">
                     <DetailsPanel selectedItem={selectedItem} onSave={handleSave} onDelete={handleDelete} />
                 </div>
+
+                {/* Right Panel - Details (Mobile Slide-over) */}
+                {detailsPanelOpen && (
+                    <div className="md:hidden fixed inset-0 z-50">
+                        <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setDetailsPanelOpen(false)} />
+                        <div className="absolute right-0 top-0 bottom-0 w-full max-w-sm bg-white shadow-xl">
+                            <div className="flex items-center justify-between p-4 border-b">
+                                <h3 className="text-lg font-semibold">Menu Details</h3>
+                                <button
+                                    onClick={() => setDetailsPanelOpen(false)}
+                                    className="p-2 hover:bg-gray-100 rounded-lg"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div className="overflow-auto h-[calc(100%-65px)]">
+                                <DetailsPanel
+                                    selectedItem={selectedItem}
+                                    onSave={async (id, data) => {
+                                        await handleSave(id, data)
+                                        setDetailsPanelOpen(false)
+                                    }}
+                                    onDelete={async (id) => {
+                                        await handleDelete(id)
+                                        setDetailsPanelOpen(false)
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
             {/* Create Menu Modal */}
             {showCreateModal && (

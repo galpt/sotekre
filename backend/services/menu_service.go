@@ -78,10 +78,10 @@ func UpdateMenu(ctx context.Context, id uint, upd map[string]interface{}) error 
 }
 
 // DeleteMenuRecursive deletes a menu and all its children (transactional).
+// Uses HARD DELETE (Unscoped) to permanently remove from database.
 func DeleteMenuRecursive(ctx context.Context, id uint) error {
 	return config.DB.Transaction(func(tx *gorm.DB) error {
-		// NOTE: using raw SQL inside the transaction for simplicity
-		// find children recursively and delete. Simpler approach: repeated queries.
+		// Find children recursively and delete permanently
 		var toDelete []uint
 		var stack = []uint{id}
 		for len(stack) > 0 {
@@ -89,15 +89,16 @@ func DeleteMenuRecursive(ctx context.Context, id uint) error {
 			stack = stack[:len(stack)-1]
 			toDelete = append(toDelete, cur)
 			var children []models.Menu
-			if err := tx.Where("parent_id = ?", cur).Find(&children).Error; err != nil {
+			// Use Unscoped to find even soft-deleted children
+			if err := tx.Unscoped().Where("parent_id = ?", cur).Find(&children).Error; err != nil {
 				return err
 			}
 			for _, ch := range children {
 				stack = append(stack, ch.ID)
 			}
 		}
-		// delete all collected ids
-		if err := tx.Where("id IN (?)", toDelete).Delete(&models.Menu{}).Error; err != nil {
+		// HARD DELETE: Unscoped().Delete() permanently removes from database
+		if err := tx.Unscoped().Where("id IN (?)", toDelete).Delete(&models.Menu{}).Error; err != nil {
 			return err
 		}
 		return nil
