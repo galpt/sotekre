@@ -17,6 +17,15 @@ import (
 
 var DB *gorm.DB
 
+// Test hooks (overridable in tests).
+// - openGorm wraps gorm.Open so tests can inject failures or alternate drivers.
+// - sleepFn is used for retry backoff and can be replaced to avoid slow tests.
+// These defaults are identical to the real implementations in production.
+var (
+	openGorm = gorm.Open
+	sleepFn  = time.Sleep
+)
+
 func envOr(key, def string) string {
 	v := os.Getenv(key)
 	if v == "" {
@@ -39,7 +48,7 @@ func InitDB() error {
 	var err error
 	// Retry loop for transient DB startup (useful with docker-compose)
 	for i := 0; i < 6; i++ {
-		DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+		DB, err = openGorm(mysql.Open(dsn), &gorm.Config{})
 		if err == nil {
 			// configure underlying sql.DB
 			sqlDB, derr := DB.DB()
@@ -59,7 +68,7 @@ func InitDB() error {
 		}
 
 		log.Printf("db connect attempt %d failed: %v — retrying in 2s", i+1, err)
-		time.Sleep(2 * time.Second)
+		sleepFn(2 * time.Second)
 	}
 
 	return fmt.Errorf("could not connect to database: %w", err)

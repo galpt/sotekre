@@ -67,20 +67,35 @@ func SetupRouter() *gin.Engine {
 	}
 
 	// prefer OpenAPI v3 `openapi.json` (checked in by the repo) then fall back
-	// to the swag-generated `swagger.json` if present.
-	if p, ok := findDocsFile("openapi.json"); ok {
-		r.GET("/openapi.json", func(c *gin.Context) { c.File(p) })
-	} else if p, ok := findDocsFile("swagger.json"); ok {
-		r.GET("/openapi.json", func(c *gin.Context) { c.File(p) })
+	// to the swag-generated `swagger.json` if present. In tests we can force the
+	// "docs missing" branch by setting SOTEKRE_TEST_NO_DOCS=1.
+	skipDocs := os.Getenv("SOTEKRE_TEST_NO_DOCS") == "1"
+	if !skipDocs {
+		if p, ok := findDocsFile("openapi.json"); ok {
+			r.GET("/openapi.json", func(c *gin.Context) { c.File(p) })
+		} else if p, ok := findDocsFile("swagger.json"); ok {
+			r.GET("/openapi.json", func(c *gin.Context) { c.File(p) })
+		} else {
+			// helpful 404 so users know how to generate docs.
+			r.GET("/openapi.json", func(c *gin.Context) {
+				c.JSON(404, gin.H{"error": "openapi.json not found; run `go generate ./...` in backend"})
+			})
+		}
 	} else {
-		// helpful 404 so users know how to generate docs.
+		// test-only: simulate missing docs
 		r.GET("/openapi.json", func(c *gin.Context) {
 			c.JSON(404, gin.H{"error": "openapi.json not found; run `go generate ./...` in backend"})
 		})
 	}
 
-	if p, ok := findDocsFile("swagger.html"); ok {
-		r.GET("/docs", func(c *gin.Context) { c.File(p) })
+	if !skipDocs {
+		if p, ok := findDocsFile("swagger.html"); ok {
+			r.GET("/docs", func(c *gin.Context) { c.File(p) })
+		} else {
+			r.GET("/docs", func(c *gin.Context) {
+				c.String(404, "API docs not generated — run `go generate ./...` in backend")
+			})
+		}
 	} else {
 		r.GET("/docs", func(c *gin.Context) {
 			c.String(404, "API docs not generated — run `go generate ./...` in backend")

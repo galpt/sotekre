@@ -25,7 +25,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.21'
+        go-version: '1.23'
 
     - name: Cache Go modules
       uses: actions/cache@v4
@@ -53,6 +53,16 @@ jobs:
         # run tests and produce coverage for the backend
         go test -coverprofile=coverage.out ./... -v
         go tool cover -func=coverage.out | tee coverage.txt
+
+    - name: Enforce coverage threshold (90%)
+      working-directory: ./backend
+      run: |
+        set -euo pipefail
+        COVER=$(go tool cover -func=coverage.out | awk '/^total:/ {sub(/%/,"",$3); print $3}')
+        echo "backend coverage: ${COVER}%"
+        THRESHOLD=90
+        # fail if coverage < THRESHOLD
+        awk -v c="$COVER" -v t="$THRESHOLD" 'BEGIN{ if (c+0 < t) exit 1 }' || { echo "Coverage ${COVER}% < ${THRESHOLD}%"; exit 1; }
 
     - name: Upload backend coverage artifact
       uses: actions/upload-artifact@v4
@@ -108,7 +118,7 @@ jobs:
     - name: Set up Go (for swag)
       uses: actions/setup-go@v5
       with:
-        go-version: '1.21'
+        go-version: '1.23'
 
     - name: Generate OpenAPI (swag)
       run: |

@@ -8,6 +8,7 @@ A small full‑stack app that demonstrates a hierarchical menu/tree with CRUD, t
 
 ## Table of contents
 - [Status](#status)
+- [Requirements](#requirements)
 - [Quickstart](#quickstart)
 - [Architecture & design](#architecture--design)
 - [API & docs](#api--docs)
@@ -21,6 +22,12 @@ A small full‑stack app that demonstrates a hierarchical menu/tree with CRUD, t
 ## Status
 - MVP complete: backend (Go + Gin + GORM), frontend (Next.js + Tailwind), Docker compose, Swagger/OpenAPI, unit & integration tests for core flows.
 - Stable enough for an interview demo (local scripts for Windows included).
+
+## Requirements
+- Go 1.23+ (matches `backend/go.mod`)
+- Node.js 18+
+- Docker (optional — recommended for the local MySQL dev workflow)
+- `swag` v1.8.12 (used by CI; to generate docs deterministically use `go run github.com/swaggo/swag/cmd/swag@v1.8.12`)
 
 ## Quickstart (dev)
 1. Rename for XAMPP (one-liner):
@@ -55,7 +62,7 @@ sha256sum <archive-file>
 ```bash
 cd backend
 go mod tidy
-# optional: generate docs -> go generate ./...
+# optional: generate docs -> cd backend && go run github.com/swaggo/swag/cmd/swag@v1.8.12 init -g main.go -o ./docs --outputTypes json,yaml,go (or: install swag v1.8.12 and run `go generate ./...`)
 go run .
 ```
 Frontend:
@@ -88,7 +95,7 @@ npm run dev
   - DELETE /api/menus/:id
 
 > [!TIP]
-> To generate docs locally: `cd backend && go generate ./...` or `go run github.com/swaggo/swag/cmd/swag@latest init -g main.go -o ./docs`)
+> To generate docs locally: `cd backend && go generate ./...` (requires `swag` v1.8.12 in PATH) or, to use the pinned generator without installing `swag`: `cd backend && go run github.com/swaggo/swag/cmd/swag@v1.8.12 init -g main.go -o ./docs --outputTypes json,yaml,go`)"
 
 ---
 
