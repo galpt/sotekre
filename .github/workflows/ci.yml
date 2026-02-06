@@ -61,8 +61,8 @@ jobs:
       working-directory: ./backend
       run: |
         set -euo pipefail
-        # run tests and produce coverage for the backend
-        go test -coverprofile=coverage.out ./... -v
+        # run tests and produce coverage for the backend (excluding auto-generated docs)
+        go test -coverprofile=coverage.out $(go list ./... | grep -v '/docs') -v
         go tool cover -func=coverage.out | tee coverage.txt
 
     - name: Enforce coverage threshold (90%)
