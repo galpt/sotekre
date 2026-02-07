@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
 import MenuTree from '../components/MenuTree'
 import DetailsPanel from '../components/DetailsPanel'
+import Logo from '../components/Logo'
 import { menuService, MenuNode as APIMenuNode } from '../services/menuService'
 
 type MenuItem = {
@@ -255,19 +256,7 @@ export default function Home() {
                     <div className="bg-white border-b px-4 md:px-6 py-4">
                         <div className="flex items-center gap-3 mb-4">
                             <div className="w-10 h-10 bg-[#0D47A1] rounded-lg flex items-center justify-center">
-                                <svg
-                                    width="24"
-                                    height="24"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="white"
-                                    strokeWidth="2"
-                                >
-                                    <rect x="3" y="3" width="7" height="7" />
-                                    <rect x="14" y="3" width="7" height="7" />
-                                    <rect x="14" y="14" width="7" height="7" />
-                                    <rect x="3" y="14" width="7" height="7" />
-                                </svg>
+                                <Logo compact className="text-white w-6 h-6" />
                             </div>
                             <h1 className="text-2xl font-semibold text-gray-900">Menus</h1>
                         </div>

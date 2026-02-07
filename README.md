@@ -4,6 +4,12 @@
 
 A small full‑stack app that demonstrates a hierarchical menu/tree with CRUD, transactional reorder/move, and a Next.js + Tailwind UI.
 
+<p align="center">
+	<img src="https://github.com/galpt/sotekre/blob/main/img/how-it-looks-like.png" alt="Web UI preview" style="max-width:100%;height:auto;" />
+	<br/>
+	<em>How it looks like</em>
+</p>
+
 ---
 
 ## Table of contents

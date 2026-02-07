@@ -1,4 +1,5 @@
 import React from 'react'
+import Logo from './Logo'
 
 type SidebarProps = {
     activeMenu?: string
@@ -46,15 +47,8 @@ export default function Sidebar({ activeMenu = 'Menus', onMenuClick }: SidebarPr
         <div className="w-[188px] h-screen bg-[#0D47A1] text-white flex flex-col fixed left-0 top-0">
             {/* Logo/Brand Section */}
             <div className="p-4 flex items-center justify-between border-b border-blue-700">
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-white rounded flex items-center justify-center">
-                        <div className="grid grid-cols-2 gap-0.5">
-                            <div className="w-1.5 h-1.5 bg-[#0D47A1] rounded-sm"></div>
-                            <div className="w-1.5 h-1.5 bg-[#0D47A1] rounded-sm"></div>
-                            <div className="w-1.5 h-1.5 bg-[#0D47A1] rounded-sm"></div>
-                            <div className="w-1.5 h-1.5 bg-[#0D47A1] rounded-sm"></div>
-                        </div>
-                    </div>
+                <div className="flex items-center gap-3">
+                    <Logo compact className="text-white w-8 h-8 flex-shrink-0" aria-hidden />
                     <div className="flex flex-col">
                         <span className="text-xs font-semibold leading-tight">Solusi</span>
                         <span className="text-xs font-semibold leading-tight">Teknologi</span>
@@ -79,8 +73,8 @@ export default function Sidebar({ activeMenu = 'Menus', onMenuClick }: SidebarPr
                             key={item.id}
                             onClick={() => onMenuClick?.(item.label)}
                             className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-colors ${isActive
-                                    ? 'bg-white text-[#0D47A1] font-medium'
-                                    : 'text-white hover:bg-blue-800'
+                                ? 'bg-white text-[#0D47A1] font-medium'
+                                : 'text-white hover:bg-blue-800'
                                 } ${item.indent ? 'pl-10' : ''}`}
                         >
                             <span className={`flex-shrink-0 ${isActive ? '' : 'opacity-80'}`}>
